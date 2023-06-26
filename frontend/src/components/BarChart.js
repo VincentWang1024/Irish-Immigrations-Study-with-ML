@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import CanvasJSReact from '@canvasjs/react-charts';
-import bar_data from './fake_data';
+import bar_data from '../fake_data';
 //var CanvasJSReact = require('@canvasjs/react-charts');
  
 var CanvasJS = CanvasJSReact.CanvasJS;
@@ -39,3 +39,6 @@ export default class BarChart extends Component {
 		);
 	}
 }
+
+
+

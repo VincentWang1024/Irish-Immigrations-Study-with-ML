@@ -6,6 +6,7 @@ from flask import flash, request
 import uuid
 import requests
 from datetime import datetime
+from backend.data_service.YTComment import process_comments
 
 
 @app.route('/model')
@@ -21,35 +22,38 @@ def model():
     except Exception as e:
         print(e)
     finally:
-        cursor.close() 
-        conn.close()  
+        cursor.close()
+        conn.close()
+
 
 @app.route('/comments', methods=['POST'])
 def comments():
+    conn = None
+    cursor = None
     try:
         _json = request.json
-        _user = _json['user']
+        _number = _json['number']
         _url = _json['url']
-        if _user and _url and request.method == 'POST':
-            job_id = uuid.uuid1()
-            
+        if _number and _url and request.method == 'POST':
+            job_id = str(uuid.uuid1())
+
             # datetime object containing current date and time
-            now = datetime.now()
-            # dd/mm/YY H:M:S
-            job_time = now.strftime("%d/%m/%Y %H:%M:%S")
+            job_time = datetime.now()
+
             # r = requests.post('http://localhost:5000/data', json={
             # "job_id": job_id,
             # "url": _url
             # })
             # print(f"Status Code: {r.status_code}, Response: {r.json()}")
-            
+
             # call data service
-            get_comments(job_id, _url)
+            print("call service...")
+            process_comments(_url, _number, job_id)
 
             conn = mysql.connect()
-            cursor = conn.cursor(pymysql.cursors.DictCursor)		
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
             sqlQuery = "INSERT INTO job(id, video_link, job_time) VALUES(%s, %s, %s)"
-            bindData = (job_id, _url, job_time)            
+            bindData = (job_id, _url, job_time)
             cursor.execute(sqlQuery, bindData)
             conn.commit()
             response = jsonify('Job added successfully!')
@@ -58,10 +62,13 @@ def comments():
     except Exception as e:
         print(e)
     finally:
-        cursor.close() 
-        conn.close()  
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
-@app.route('model/result', methods=['POST']) 
+
+@app.route('/model/result', methods=['POST'])
 def model_output():
     try:
         _json = request.json
@@ -69,17 +76,17 @@ def model_output():
         job_id = _json['job_id']
 
         # send back to client
-        r = requests.post('http://localhost:3000/result', json={
+        r = requests.post('http://localhost:3000/dashboard/result', json={
             "job_id": job_id,
             "result": _result
-            })
+        })
         print(f"Status Code: {r.status_code}, Response: {r.json()}")
-        
-        #store result into database
+
+        # store result into database
         conn = mysql.connect()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)		
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
         sqlQuery = "INSERT INTO job_output(label, ratio, job_id) VALUES(%s, %s, %s)"
-        
+
         for each in _result:
             for k, v in each.items():
                 bindData = (k, v, job_id)
@@ -91,9 +98,10 @@ def model_output():
     except Exception as e:
         print(e)
     finally:
-        cursor.close() 
-        conn.close()  
-    
+        cursor.close()
+        conn.close()
+
+
 @app.errorhandler(404)
 def showMessage(error=None):
     message = {
@@ -103,6 +111,7 @@ def showMessage(error=None):
     response = jsonify(message)
     response.status_code = 404
     return response
-        
+
+
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { styled } from '@mui/system';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
-import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
-import Stack from '@mui/material/Stack';
+import { TextField, Button, CircularProgress, Alert, AlertTitle, Stack } from '@mui/material';
+import { MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+
+import axios from 'axios';
 
 const RootContainer = styled('div')({
   display: 'flex',
@@ -55,6 +53,7 @@ const URLInput = ({ onURLSubmit }) => {
   const classes = useStyles();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+  const [numComments, setNumComments] = useState('');
   const [isValid, setIsValid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successAlertOpen, setSuccessAlertOpen] = useState(false);
@@ -72,15 +71,42 @@ const URLInput = ({ onURLSubmit }) => {
       setError('Please enter a URL');
     } else if (!isValid) {
       setError('Please enter a valid URL');
+    } else if (numComments === '') {
+      setError('Please enter a number of comments');
     } else {
       setIsLoading(true);
       // Simulate loading delay
-      setTimeout(() => {
-        setIsLoading(false);
-        setUrl('');
-        setSuccessAlertOpen(true);
-        onURLSubmit(url);
-      }, 2000);
+      // setTimeout(() => {
+      //   setIsLoading(false);
+      //   setSuccessAlertOpen(true);
+      //   onURLSubmit(url);
+      // }, 2000);
+      fetch('/api/comments', {
+        method: 'POST',
+        // mode: "cors", // no-cors, *cors, same-origin
+        // credentials: 'include', // Include this line
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url, number: numComments }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Request failed');
+          }
+          return response.json();
+        })
+        .then((data) => {
+          setIsLoading(false);
+          setSuccessAlertOpen(true);
+          onURLSubmit(url);
+        })
+        .catch((error) => {
+          setIsLoading(false);
+          setErrorAlertOpen(true);
+          console.error('Error:', error.message);
+        });
+
     }
   };
 
@@ -91,7 +117,7 @@ const URLInput = ({ onURLSubmit }) => {
 
   const isValidUrl = (url) => {
     // Regex pattern for URL validation
-    const urlRegex = /^(ftp|http|https):\/\/[^ "]+$/;
+    const urlRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+/;
     return urlRegex.test(url);
   };
 
@@ -109,13 +135,28 @@ const URLInput = ({ onURLSubmit }) => {
         helperText={error}
         inputProps={{ style: { textAlign: 'center' } }}
       />
+      <FormControl fullWidth>
+      <InputLabel id="num-comments-label">Number of Comments</InputLabel>
+      <Select
+        labelId="num-comments-label"
+        value={numComments}
+        onChange={(e) => setNumComments(e.target.value)}
+        variant="outlined"
+        label="Number of Comments"
+        required
+      >
+        <MenuItem value={10}>50</MenuItem>
+        <MenuItem value={20}>100</MenuItem>
+        <MenuItem value={30}>200</MenuItem>
+      </Select>
+    </FormControl>
       <Button
         variant="contained"
         color="primary"
         size="large"
         className={classes.button}
         onClick={handleSubmit}
-        disabled={isLoading}
+        disabled={isLoading||!isValid || numComments === ''}
       >
         {isLoading ? (
           <div className={classes.animationContainer}>

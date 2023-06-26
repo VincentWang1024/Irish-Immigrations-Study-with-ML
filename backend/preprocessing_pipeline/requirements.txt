@@ -1,0 +1,6 @@
+pip install nltk
+pip install langdetect
+pip install tensorflow
+pip install numpy
+pip install pymongo
+pip install mysql.connector

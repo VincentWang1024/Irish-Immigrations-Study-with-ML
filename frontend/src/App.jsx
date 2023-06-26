@@ -1,15 +1,32 @@
 import React, { useState } from 'react';
 import { styled } from '@mui/system';
 import URLInput from './URLInput';
+import NavBar from './components/Navbar';
+import BarChart from './components/BarChart';
 
-const AppContainer = styled('div')({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: '100vh',
-  backgroundColor: '#f2f2f2',
+
+const OuterContainer = styled('div')({
+    bool:'true',
+    display: 'flex',
+    flexDirection: 'column',
+    marginLeft: '0',
+    marginRight: '0', 
+    marginTop: '0',
+    marginBottom: '0',
+    width: '100vw',
+    height: '100vh',  
+    minHeight: '100vh',
+    backgroundColor: 'white'
+
 });
+
+// const AppContainer = styled('div')({
+//   display: 'flex',
+//   flexDirection: 'column',
+//   alignItems: 'center',
+//   justifyContent: 'center',
+//   flex: '1 0 auto',
+// });
 
 const AppTitle = styled('h1')({
   fontSize: '28px',
@@ -26,10 +43,12 @@ const App = () => {
   };
 
   return (
-    <AppContainer>
-      <AppTitle>URL Input</AppTitle>
-      <URLInput onURLSubmit={handleURLSubmit} />
-    </AppContainer>
+    <OuterContainer sx={{ px: 0 }}>
+      <NavBar />
+       <AppTitle>URL Input</AppTitle>
+       <URLInput onURLSubmit={handleURLSubmit} />
+       <BarChart />
+    </OuterContainer>
   );
 };
 

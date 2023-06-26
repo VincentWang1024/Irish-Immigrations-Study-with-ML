@@ -1,4 +1,4 @@
-.App {
+/* .App {
   text-align: center;
 }
 
@@ -7,14 +7,23 @@
   pointer-events: none;
 }
 
+body {
+  margin-top: 0;
+  padding-top: 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
   }
 }
 
+
+
 .App-header {
   background-color: #282c34;
+  margin: 0 !important;
+  padding: 0 !important;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -35,4 +44,4 @@
   to {
     transform: rotate(360deg);
   }
-}
+} */
