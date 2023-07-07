@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 
 // @mui
 import {
-  Container,
-  Typography,
+    Container,
+    Typography,
   Card,
   Table,
   Paper,
@@ -28,62 +28,27 @@ import {ProductCartWidget, ProductFilterSidebar, ProductList, ProductSort} from 
 import PRODUCTS from "../_mock/products";
 
 export default function CommentPage() {
-  const [url, setUrl] = useState('');
-  const [numComments, setNumComments] = useState('');
-  const [modelID, setModelID] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [MODELLIST, setMODELLIST] = useState([]);
+    const [url, setUrl] = useState('');
+    const [numComments, setNumComments] = useState('');
+    const [modelID, setModelID] = useState('');
+    const [submitted, setSubmitted] = useState(false);
+    const [MODELLIST, setMODELLIST] = useState([]);
 
-  const [thumbnail, setThumbnail] = useState('');
-  const [title, setTitle] = useState('');
+    useEffect(() => {
+        fetch('http://127.0.0.1:5000/api/model')
+        // fetch('https://5d800273-5a71-4616-9066-1ce6d6c6280e.mock.pstmn.io/127.0.0.1/model')
+            .then(response => response.json())
+            .then(data => setMODELLIST(data))  // Set the state once data is fetched
+            .catch(error => console.error('Error:', error));
+    }, []);  // Empty dependency array means this effect runs once on mount
 
-  const getVideoId = (url) => {
-    const videoId = url.split('v=')[1];
-    const ampersandPosition = videoId.indexOf('&');
-    if (ampersandPosition !== -1) {
-      return videoId.substring(0, ampersandPosition);
-    }
-    return videoId;
-  };
-
-  useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/model')
-    // fetch('https://5d800273-5a71-4616-9066-1ce6d6c6280e.mock.pstmn.io/127.0.0.1/model')
-        .then(response => response.json())
-        .then(data => setMODELLIST(data))  // Set the state once data is fetched
-        .catch(error => console.error('Error:', error));
-}, []);  // Empty dependency array means this effect runs once on mount
-
-  
-  useEffect(() => {
-    const getVideoDetails = async () => {
-      try {
-        const videoId = getVideoId(url);
-        const response = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=CLIENT_SECRET`
-        );
-        const data = await response.json();
-        const video = data.items[0];
-        const { thumbnails, title } = video.snippet;
-        setThumbnail(thumbnails.high.url);
-        setTitle(title);
-      } catch (error) {
-        console.error('Error:', error);
-      }
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      setSubmitted(true);
     };
 
-    if (submitted) {
-      getVideoDetails();
-    }
-  }, [submitted, url]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
-
   return (
-    <>
+         <>
       <Helmet>
         <title> Dashboard: Products | Minimal UI </title>
       </Helmet>
@@ -110,7 +75,7 @@ export default function CommentPage() {
             style={{ width: '70%' }} // You might need to adjust this to ensure all elements fit
             onChange={(e) => setUrl(e.target.value)}
           />
-          <FormControl style={{ width: '15%' }}>
+            <FormControl style={{ width: '15%' }}>
             <InputLabel>#Comments</InputLabel>
             <Select
               value={numComments}
@@ -121,8 +86,8 @@ export default function CommentPage() {
               <MenuItem value={200}>200</MenuItem>
             </Select>
           </FormControl>
-          <FormControl style={{ width: '10%' }}>
-            <InputLabel>Model</InputLabel>
+            <FormControl style={{ width: '10%' }}>
+                <InputLabel>Model</InputLabel>
                 <Select
                     value={modelID}
                     onChange={(e) => setModelID(e.target.value)}
@@ -132,25 +97,15 @@ export default function CommentPage() {
                             {model.name}
                         </MenuItem>
                     ))}
-            </Select>
-          </FormControl>
+                </Select>
+            </FormControl>
 
           <Button type="submit" variant="contained" color="primary">
             Submit
           </Button>
         </form>
 
-        {submitted && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {thumbnail && (
-              <div style={{ width: '50%', marginBottom: '2rem' }}>
-                <img src={thumbnail} alt="Video Thumbnail" style={{ width: '100%', height: 'auto' }} />
-              </div>
-            )}
-            {title && <Typography variant="h6">{title}</Typography>}
-            <MyBarChart url={url} number={numComments} />
-          </div>
-        )}
+          {submitted && <MyBarChart url={url} number={numComments} />}
       </Container>
     </>
   );
