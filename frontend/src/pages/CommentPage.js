@@ -2,6 +2,7 @@ import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 // @mui
 import {
@@ -33,6 +34,23 @@ export default function CommentPage() {
     const [modelID, setModelID] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [MODELLIST, setMODELLIST] = useState([]);
+    const [title, setTitle] = useState('');
+    const [thumbnail, setThumbnail] = useState('');
+    const [prevUrl, setPrevUrl] = useState('');
+    
+    
+    const apikey = process.env.REACT_APP_YOUTUBE_API_KEY
+    const extractVideoId = url => url.split('v=')[1]?.split('&')[0];
+  
+    const fetchYoutubeData = async () => {
+      const videoId = extractVideoId(url);
+      const response = await axios.get(
+        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${process.env.REACT_APP_YOUTUBE_API_KEY}&part=snippet`
+      );
+  
+      setTitle(response.data.items[0].snippet.title);
+      setThumbnail(response.data.items[0].snippet.thumbnails.high.url);
+    };
 
     useEffect(() => {
         fetch('http://127.0.0.1:5000/api/model')
@@ -40,10 +58,17 @@ export default function CommentPage() {
             .then(response => response.json())
             .then(data => setMODELLIST(data))  // Set the state once data is fetched
             .catch(error => console.error('Error:', error));
-    }, []);  // Empty dependency array means this effect runs once on mount
+
+            if (url !== prevUrl) { // check if current URL is different from previous URL
+              setPrevUrl(url); // update previous URL state
+              fetchYoutubeData(); // fetch video data
+          }
+      }, [url, prevUrl]); // updated dependency array
 
     const handleSubmit = (e) => {
       e.preventDefault();
+      console.log(apikey)
+      // setUrlChange(!urlChange);
       setSubmitted(true);
     };
 
@@ -100,12 +125,20 @@ export default function CommentPage() {
                 </Select>
             </FormControl>
 
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="c`ontained" color="primary">
             Submit
           </Button>
         </form>
 
-          {submitted && <MyBarChart url={url} number={numComments} />}
+        {submitted && (
+        <>
+          <Typography variant="h5" sx={{ mt: 3, mb: 2 }}>
+            Video Title: {title}
+          </Typography>
+          <img src={thumbnail} alt={title} style={{ width: '300px' }} />
+          <MyBarChart url={url} number={numComments} />
+        </>
+      )}      
       </Container>
     </>
   );
