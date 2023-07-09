@@ -1,10 +1,17 @@
 # imports
 import os
+import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize 
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk import pos_tag
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
+nltk.download('punkt')
+nltk.download('omw-1.4')
 import re
 import pickle
 from langdetect import detect
@@ -32,7 +39,8 @@ def runner():
         return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2'}), 400
     try:
         sentences = SQLConnector(jobID)
-        padded_sequences = generate_embeddings(sentences)
+        padded_sequences, testCorpus = generate_embeddings(sentences)
+        SaveCorpusSQL(testCorpus, jobID)
         push_mongo(padded_sequences, jobID)
         model_runner_url = 'http://localhost:5003/api/callmodel'
         response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
@@ -95,12 +103,33 @@ def SQLConnector(jobID):
         host=os.getenv('MYSQL_HOST'),
         database=os.getenv('MYSQL_DB')
     )
-
     cursor = connection.cursor()
     cursor.execute('SELECT `comments` FROM `usercomments` WHERE `jobid` = %s;', (jobID,))
     results = cursor.fetchall()
     sentences = [row[0] for row in results]
     return sentences
+
+def SaveCorpusSQL(testCorpus, jobID):
+    connection = mysql.connector.connect(
+        user=os.getenv('MYSQL_ROOT_USERNAME'),
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        host=os.getenv('MYSQL_HOST'),
+        database=os.getenv('MYSQL_DB')
+    )
+    try:
+        cursor = connection.cursor()
+        sentences = []
+        for sentence in testCorpus:
+            sql = "INSERT INTO emotions_texts (job_id, sentence) VALUES (%s, %s)"
+            cursor.execute(sql, (jobID, sentence))
+            sentences.append(sentence)
+        connection.commit()
+    except Exception as e:
+        print(f"An error occurred while storing data: {str(e)}")
+        return []
+
+    finally:
+        connection.close()
 
 def generate_embeddings(sentences):
     emoji_dict=emoji_dictionary()
@@ -120,7 +149,7 @@ def generate_embeddings(sentences):
         tokenizer = pickle.load(handle)
     input_sequences = tokenizer.texts_to_sequences(testCorpus)
     padded_sequences = tf.keras.preprocessing.sequence.pad_sequences(input_sequences, maxlen=MAX_SEQUENCE_LENGTH)
-    return padded_sequences
+    return padded_sequences, testCorpus
  
 def push_mongo(padded_sequences, jobID):
     try:

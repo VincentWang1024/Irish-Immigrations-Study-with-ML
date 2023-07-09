@@ -1,5 +1,6 @@
-protobuf
-tensorflow
+tensorflow==2.13.0
+protobuf==3.20.3
+pandas
 numpy==1.23.3
 pymongo==4.4.0
 flask
