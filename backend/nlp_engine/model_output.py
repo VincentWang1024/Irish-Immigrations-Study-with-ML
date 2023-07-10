@@ -16,46 +16,24 @@ app = Flask(__name__)
 
 load_dotenv()
 
-# mise en place
 savedModels={1: "savedModels/CNN_Model", 2: "savedModels/LSTM_Model", 'goemotion': "savedModels/TransformerSentiment"}
 MAX_EMOTIONS_LENGTH=4
 
 @app.route("/api/callmodel", methods=['POST'])
 def model_runner():
-    data = request.json
-    if 'jobID' not in data or 'model_id' not in data:
-        return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
-    jobID = data.get('jobID')
-    modelID = data.get('model_id')
-    if modelID not in [1, 2]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2'}), 400
-    vector_data = []
-    try:
-        CONNECTION_STRING = os.getenv('MONGO_URI')
-        client= MongoClient(CONNECTION_STRING)
-        db=client.get_database('Vector_Data')
-        collection=db.preprocessed_data
-        testCorpus = GetPreprocText(jobID)
-        alldocuments = collection.find({str(jobID): {'$exists': True}})
-        for document in alldocuments:
-            vector_data.append(document[str(jobID)])
-        vector_array = np.array(vector_data)
-        if len(vector_data) == 0:
-            raise Exception('No vector data found in MongoDB')
-    except Exception as e:
-        print('Connection Failed')
-        print(str(e))
-        return jsonify({'status': 'error', 'message': 'No vector data found in MongoDB'}), 404
-    prediction_summary = predictions(vector_array, testCorpus, modelID, jobID)
+    modelID, jobID = get_modelid_and_jobid_from_json()
+    vector_array = get_vector_data_from_db(modelID, jobID)
+    prediction_summary = get_predictions_for_CNN_and_LSTM(vector_array, modelID)
+    testCorpus = get_preprocessed_text_from_db(jobID)
+    prediction_summary = get_predictions_for_go_emotions(testCorpus, prediction_summary, jobID)
     sentiment_dict = {key: value for key, value in prediction_summary.items() if key not in ['emotions']}
     emotions_json = prediction_summary.get('emotions', {})
-    if SQLConnector(sentiment_dict, jobID) and sendEmotionResultSQL(emotions_json, jobID):
+    if add_predictions_to_db(sentiment_dict, jobID) and add_emotions_results_to_db(emotions_json, jobID):
         return jsonify({'status': 'success', 'message': 'Model execution completed successfully'}), 200
     else:
         return jsonify({'status': 'error', 'message': 'Failed to execute model_runner, Persistence Error'}), 500
 
-
-def SQLConnector(prediction_summary, jobID):
+def add_predictions_to_db(prediction_summary, jobID):
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
@@ -77,7 +55,7 @@ def SQLConnector(prediction_summary, jobID):
     finally:
         connection.close()
 
-def GetPreprocText(jobID):
+def get_preprocessed_text_from_db(jobID):
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
@@ -121,7 +99,7 @@ def generate_json_data(output, jobID):
     }
     return json_data
 
-def sendEmotionResultSQL(json_data, jobID):
+def add_emotions_results_to_db(json_data, jobID):
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
@@ -141,23 +119,55 @@ def sendEmotionResultSQL(json_data, jobID):
     finally:
         connection.close()
 
-def predictions(padded_sequences, testCorpus, model_id, jobID):
+def get_predictions_for_CNN_and_LSTM(padded_sequences, model_id):
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
     loaded_model = tf.keras.models.load_model(savedModels[int(model_id)])   
-    emotion_model = tf.keras.models.load_model(savedModels['goemotion'])
     predictions = loaded_model.predict(padded_sequences)
     predicted_classes = np.argmax(predictions, axis=1)
     prediction_summary = {label: 0 for label in class_labels}
     for predicted_class in predicted_classes:
         predicted_label = class_labels[predicted_class]
         prediction_summary[predicted_label] += 1
+    return prediction_summary
+
+def get_predictions_for_go_emotions(prediction_summary, testCorpus, jobID):
     testCorpus = pd.Series(testCorpus)
+    emotion_model = tf.keras.models.load_model(savedModels['goemotion'])
     EmotionPredictions = emotion_model.predict(testCorpus)
     EmotionPredictions = np.argmax(EmotionPredictions, axis=1)
     jsonResult=generate_json_data(EmotionPredictions, jobID)
     prediction_summary['emotions']=jsonResult
     return prediction_summary
 
+def get_vector_data_from_db(modelID, jobID):
+    try:
+        if modelID == 1 or modelID == 2:
+            CONNECTION_STRING = os.getenv('MONGO_URI')
+            client= MongoClient(CONNECTION_STRING)
+            db=client.get_database('Vector_Data')
+            collection=db.preprocessed_data
+            alldocuments = collection.find({str(jobID): {'$exists': True}})
+            vector_data = []
+            for document in alldocuments:
+                vector_data.append(document[str(jobID)])    
+            if len(vector_data) == 0:
+                raise Exception('No vector data found in MongoDB')
+            vector_array = np.array(vector_data)
+            return vector_array
+    except Exception as e:
+        print('Connection Failed')
+        print(str(e))
+        return jsonify({'status': 'error', 'message': 'No vector data found in MongoDB'}), 404
+
+def get_modelid_and_jobid_from_json():
+    data = request.json
+    if 'jobID' not in data or 'model_id' not in data:
+        return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
+    jobID = data.get('jobID')
+    modelID = data.get('model_id')
+    if modelID not in [1, 2, 3, 4]:
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3,4'}), 400
+    return modelID, jobID
 
 if __name__ == '__main__':
     app.run(debug = True, port=8003)
