@@ -45,12 +45,12 @@ def model_runner():
     except Exception as e:
         print('Connection Failed')
         print(str(e))
-        return jsonify({'status': 'error', 'message': 'No vector data found in MongoDB'}), 404
-    prediction_summary = predictions(vector_array, testCorpus, modelID)
+        return
+    prediction_summary = predictions(vector_array, modelID)
     if SQLConnector(prediction_summary, jobID):
         return jsonify({'status': 'success', 'message': 'Model execution completed successfully'}), 200
     else:
-        return jsonify({'status': 'error', 'message': 'Failed to execute model_runner'}), 500
+        return jsonify({'status': 'error', 'message': 'Failed to execute model_runner, Persistence Error'}), 500
 
 
 def SQLConnector(prediction_summary, jobID):
@@ -64,15 +64,9 @@ def SQLConnector(prediction_summary, jobID):
     )
     try:
         with connection.cursor() as cursor:
-            for label, ratio in sentiment_dict.items():
-                job_output_query = "INSERT INTO job_output (label, ratio, job_id) VALUES (%s, %s, %s)"
-                cursor.execute(job_output_query, (label, ratio, jobID))
-            for index, emotions in enumerate(emotions_list):
-                padded_emotions = emotions + [None] * (MAX_EMOTIONS_LENGTH - len(emotions))
-                emotion_table_query = "INSERT INTO emotions_table (job_id, emotions1, emotions2, emotions3, emotions4) VALUES (%s, %s, %s, %s, %s)"
-                data = (str(jobID),) + tuple(padded_emotions)
-                cursor.execute(emotion_table_query, data)
-
+            for label, ratio in prediction_summary.items():
+                sql = "INSERT INTO job_output(label, ratio, job_id) VALUES(%s, %s, %s)"
+                cursor.execute(sql, (label, ratio, jobID))
             connection.commit()
             return True
 
@@ -82,22 +76,9 @@ def SQLConnector(prediction_summary, jobID):
 
     finally:
         connection.close()
+    
 
-def GetPreprocText(jobID):
-    connection = mysql.connector.connect(
-        user=os.getenv('MYSQL_ROOT_USERNAME'),
-        password=os.getenv('MYSQL_ROOT_PASSWORD'),
-        host=os.getenv('MYSQL_HOST'),
-        database=os.getenv('MYSQL_DB')
-    )
-
-    cursor = connection.cursor()
-    cursor.execute('SELECT `sentence` FROM `emotions_texts` WHERE `job_id` = %s;', (jobID,))
-    results = cursor.fetchall()
-    sentences = [row[0] for row in results]
-    return sentences
-
-def predictions(padded_sequences, testCorpus, model_id):
+def predictions(padded_sequences, model_id):
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
     loaded_model = tf.keras.models.load_model(savedModels[int(model_id)])   
     emotion_model = tf.keras.models.load_model(savedModels['goemotion'])
@@ -107,21 +88,8 @@ def predictions(padded_sequences, testCorpus, model_id):
     for predicted_class in predicted_classes:
         predicted_label = class_labels[predicted_class]
         prediction_summary[predicted_label] += 1
-    testCorpus = pd.Series(testCorpus)
-    EmotionPredictions = emotion_model.predict(testCorpus)
-    EmotionPredictions = np.argmax(EmotionPredictions, axis=1)
-    reverse_mapping = {
-        0: ["anger", "annoyance", "disapproval"],
-        1: ["joy", "amusement", "approval", "excitement"],
-        2: ["neutral"],
-        3: ["sadness", "disappointment", "embarrassment"],
-        4: ["surprise", "realization", "confusion", "curiosity"]
-    }
-    predicted_emotions = [reverse_mapping[prediction] for prediction in EmotionPredictions]
-    prediction_summary['emotions']=predicted_emotions
     return prediction_summary
 
 
 if __name__ == '__main__':
-    app.run(debug = True, port=5003)
-# model_runner('a4ca21c2-1444-11ee-9dcf-fefcbf0ffb95')
+    app.run(debug = True, port=8003)
