@@ -35,13 +35,17 @@ def runner():
         return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
     jobID = data.get('jobID')
     modelID = data.get('model_id')
-    if modelID not in [1, 2]:
+    if modelID not in [1, 2, 3, 4]:
         return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2'}), 400
     try:
         sentences = SQLConnector(jobID)
-        padded_sequences, testCorpus = generate_embeddings(sentences)
-        SaveCorpusSQL(testCorpus, jobID)
-        push_mongo(padded_sequences, jobID)
+        if modelID == 1 or modelID == 2:
+            padded_sequences = generate_embeddings(sentences)
+            push_mongo(padded_sequences, jobID)
+        elif modelID == 3 or modelID == 4:
+            testCorpus = perform_preprocessing(sentences)
+            SaveCorpusSQL(testCorpus, jobID)
+          
         model_runner_url = 'http://localhost:8003/api/callmodel'
         response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
         if response.status_code == 200:
@@ -118,38 +122,22 @@ def SaveCorpusSQL(testCorpus, jobID):
     )
     try:
         cursor = connection.cursor()
-        sentences = []
         for sentence in testCorpus:
             sql = "INSERT INTO emotions_texts (job_id, sentence) VALUES (%s, %s)"
             cursor.execute(sql, (jobID, sentence))
-            sentences.append(sentence)
         connection.commit()
     except Exception as e:
         print(f"An error occurred while storing data: {str(e)}")
-        return []
-
     finally:
         connection.close()
 
 def generate_embeddings(sentences):
-    emoji_dict=emoji_dictionary()
-    testCorpus=[]
-    for text in sentences:
-            try:
-                lang = detect(text)
-            except:
-                lang = ""
-            if lang == "en":
-                newText = text.strip()
-                newText = replace_emojis(newText, emoji_dict)
-                newText = preprocess_text(newText)
-                testCorpus.append(newText)
-                
+    testCorpus = perform_preprocessing(sentences)                
     with open('tokenizer.pickle', 'rb') as handle:
         tokenizer = pickle.load(handle)
     input_sequences = tokenizer.texts_to_sequences(testCorpus)
     padded_sequences = tf.keras.preprocessing.sequence.pad_sequences(input_sequences, maxlen=MAX_SEQUENCE_LENGTH)
-    return padded_sequences, testCorpus
+    return padded_sequences
  
 def push_mongo(padded_sequences, jobID):
     try:
@@ -164,6 +152,20 @@ def push_mongo(padded_sequences, jobID):
     except Exception as e:
         print("Error while inserting data to MongoDB:")
         print(str(e))
+def perform_preprocessing(sentences):
+    emoji_dict=emoji_dictionary()
+    testCorpus=[]
+    for text in sentences:
+        try:
+            lang = detect(text)
+        except:
+            lang = ""
+            if lang == "en":
+                newText = text.strip()
+                newText = replace_emojis(newText, emoji_dict)
+                newText = preprocess_text(newText)
+                testCorpus.append(newText)
+    return testCorpus
 
 if __name__ == '__main__':
     app.run(debug = True, port=8002)
