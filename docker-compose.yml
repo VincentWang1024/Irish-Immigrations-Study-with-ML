@@ -5,16 +5,29 @@ services:
     build: ./backend/broker_service  # Specifies the Dockerfile location. Here, it's in the same directory
     ports:
       - "8000:8000"  # Forward the exposed port 5000 on the container to port 5000 on the host machine
-
+    networks:
+      - my_network
   data_service: 
     build: ./backend/data_service   
     ports:
       - "8001:8001" 
+    networks:
+      - my_network
+    
   preprocess_service: 
     build: ./backend/preprocessing_pipeline  
     ports:
       - "8002:8002" 
+    networks:
+      - my_network
+    
+    
   nlp_service: 
-    build: ./backend/nlp_engine   
+    build: ./backend/nlp_engine
     ports:
       - "8003:8003"
+    networks:
+      - my_network
+
+networks:
+  my_network:
