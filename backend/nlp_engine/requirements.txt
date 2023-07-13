@@ -4,4 +4,6 @@ pandas
 numpy==1.23.3
 pymongo==4.4.0
 flask
-
+tensorflow_text
+python-dotenv
+mysql-connector-python

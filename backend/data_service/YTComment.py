@@ -54,7 +54,7 @@ def process_comments():
         video_id = get_video_id_from_url(url)
         comments = get_comments(video_id, comment_count)
         save_comments_to_database(job_id, comments)
-        preprocess_url = 'http://localhost:5002/api/preprocess'
+        preprocess_url = 'http://preprocess_service:8002/api/preprocess'
         response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id})
         if response.status_code == 200:
             return Response("Comments OK", status=200)
@@ -134,4 +134,4 @@ def get_comments(video_id, comment_count, comments = [], pgtoken=""):
         return comments
     
 if __name__ == '__main__':
-    app.run(debug = True, port=5001)
+    app.run(debug = True, host='0.0.0.0', port=8001)

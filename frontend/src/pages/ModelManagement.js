@@ -95,7 +95,7 @@ export default function ModelManagement() {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/model')
+    fetch('http://127.0.0.1:8000/api/model/find')
     // fetch('https://5d800273-5a71-4616-9066-1ce6d6c6280e.mock.pstmn.io/127.0.0.1/model')
         .then(response => response.json())
         .then(data => setMODELLIST(data))  // Set the state once data is fetched
@@ -105,7 +105,8 @@ export default function ModelManagement() {
   const updateModelEnable = async (id, enable) => {
     console.log(enable)
     try {
-      const response = await axios.put(`http://localhost:5000/api/model/${id}`, {
+      const response = await axios.put(`http://localhost:8000/api/model/update`, {
+        model_id: {id},  
         enable: {enable}
       });
 

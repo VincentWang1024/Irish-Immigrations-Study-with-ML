@@ -3,19 +3,19 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'rec
 import { Spinner } from 'react-bootstrap';
 
 
-const MyBarChart = ({ url, number }) => {
+const MyBarChart = ({ url, number, model_id }) => {
   const [chartData, setChartData] = useState([]);
   const colors = ['#8884d8', '#82ca9d', '#ffc658', '#FF8042', '#0088FE'];
-
+  const fakeData = []
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const response = await fetch('http://0.0.0.0:5000/api/comments', {
+        const response = await fetch('http://127.0.0.1:8000/api/comments', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ url, number }),
+          body: JSON.stringify({ url, number, model_id }),
         });
 
         const data = await response.json();
@@ -47,8 +47,8 @@ const MyBarChart = ({ url, number }) => {
         </div>
       ) : (
       <BarChart
-        width={1000}
-        height={600}
+        width={700}
+        height={500}
         data={chartData}
         margin={{
           top: 5, right: 30, left: 20, bottom: 5,

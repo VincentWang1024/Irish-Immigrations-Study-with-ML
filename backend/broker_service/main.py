@@ -13,26 +13,34 @@ from datetime import datetime
 
 @app.route('/api/comments', methods=['POST'])
 def comments():
-    response = "nothing!"
     try:
         _json = request.json
+        # if _number and _url and _model_id and request.method == 'POST':
+        if 'number' not in _json or 'url' not in _json or 'model_id' not in _json:
+                return jsonify({'status': 'error', 'message': 'url, commentcount, jobID, and model_id are required fields'}), 400
         _number = _json['number']
         _url = _json['url']
         _model_id = _json['model_id']
-        if _number and _url and _model_id and request.method == 'POST':
-            job_id = str(uuid.uuid1())
-            job_time = datetime.now()
+        print(_number, _url, _model_id)
 
-            print("...........request data service......................")
-            response = requests.post('http://127.0.0.1:5001/comments', json={
-                "url": _url,
-                "commentcount":_number,
-                "jobid": job_id,
-                "modelid": _model_id
-            })
-            print("............data service respond.....................")
-            print(f"Status Code: {response.status_code}, Response: {response.json()}")
-            
+        job_id = str(uuid.uuid1())
+        job_time = datetime.now()
+
+        print("...........request data service......................")
+        response = requests.post('http://data_service:8001/comments', json={
+            "url": _url,
+            "commentcount":_number,
+            "jobid": job_id,
+            "modelid": _model_id
+        })
+        print("............data service respond.....................")
+        print(f"Status Code: {response.status_code}, Response: {response.json()}")
+        save_job(job_id, _url, job_time)
+        job_output_polling(job_id)
+        if response.status_code == 200:
+            return jsonify({'status': 'success', 'message': 'pipeline executed successfully!'}), 200
+        elif response.status_code == 500:
+            return jsonify({'status': 'error', 'message': 'pipeline has something wrong!'}), 500
     except requests.exceptions.RequestException as err:
         print ("OOps: Something Else Happened",err)
     except requests.exceptions.HTTPError as errh:
@@ -41,16 +49,11 @@ def comments():
         print ("Error Connecting:",errc)
     except requests.exceptions.Timeout as errt:
         print ("Timeout Error:",errt)
+    return jsonify({'status': 'error', 'message': 'core logic not executed!'}), 501
     
-    save_job(job_id, _url, job_time)
-    job_output_polling(job_id) 
-    if response.status_code == 200:
-        return jsonify({'status': 'success', 'message': 'pipeline executed successfully!'}), 200
-    else:
-        return jsonify({'status': 'error', 'message': 'pipeline has something wrong!'}), 500
-    
-@app.route('/model/result', methods=['POST'])
-# @cross_origin()
+
+
+@app.route('/api/model/result', methods=['POST'])
 def model_output():
     conn = None
     cursor = None
@@ -83,6 +86,56 @@ def model_output():
             conn.close()
 
 
+@app.route('/api/model/find', methods=['GET'])
+def model_find():
+    try:
+        # store result into database
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        sql = "SELECT * FROM model"
+        cursor.execute(sql)
+        conn.commit()
+        modelRows = cursor.fetchall()
+        response = jsonify(modelRows)
+        print(response)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        print(e)
+        return jsonify(message=str(e), status=500) # added this line
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/model/update', methods=['PUT'])
+def model_update():
+    conn = None
+    cursor = None
+    try:
+        _json = request.json
+        _model_id = _json["model_id"]
+        _is_enable = _json["enable"]
+
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        sql = "UPDATE model SET enable=%s WHERE id=%s"
+        bindData = (_is_enable, _model_id,)
+        cursor.execute(sql, bindData)
+        conn.commit()
+        respone = jsonify('model updated successfully!')
+        respone.status_code = 200
+        return respone
+    except Exception as e:
+        showMessage()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    return jsonify({'status': 'error', 'message': 'model update failure!'}), 500
+
+
 @app.errorhandler(404)
 def showMessage(error=None):
     message = {
@@ -104,7 +157,10 @@ def get_result(job_id):
     print("length of result "+str(len(resultRows)))
     return resultRows
 
+
 def save_job(job_id, _url, job_time):
+    conn=None
+    cursor=None
     try:
         conn = mysql.connect()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -115,9 +171,11 @@ def save_job(job_id, _url, job_time):
     except Exception as e:
         print(e)
     finally:
-        cursor.close()
-        conn.close()
-        
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 def job_output_polling(job_id):
     try:
@@ -136,7 +194,7 @@ def job_output_polling(job_id):
         print("Failed to get result after max attempts")
     except Exception as e:
         print(e)
-    
+
 
 if __name__ == "__main__":
-    app.run(debug=True, host='127.0.0.1', port=8000)
+    app.run(debug=True, host='0.0.0.0', port=8000)
