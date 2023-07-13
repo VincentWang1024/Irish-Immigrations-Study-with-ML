@@ -29,6 +29,7 @@ import {
 
 import MyBarChart from '../components/chart/BarChart';
 import PieChart from '../components/chart/PieChart';
+import BarChartRace from 'src/components/chart/BarChartRace';
 import {ProductCartWidget, ProductFilterSidebar, ProductList, ProductSort} from "../sections/@dashboard/products";
 import PRODUCTS from "../_mock/products";
 
@@ -44,6 +45,14 @@ export default function CommentPage() {
     const [pieData, setPieData] = useState([])
     const [isHovered, setIsHovered] = useState(false);
 
+    const barchartData = [
+      { name: 'A', value: 10 },
+      { name: 'B', value: 20 },
+      { name: 'C', value: 30 },
+      { name: 'D', value: 40 },
+      { name: 'E', value: 50 },
+    ];
+    
     const fakedataPie = [
       { label: 'Apples', value: 10 }, 
       { label: 'Oranges', value: 20 },
@@ -159,7 +168,8 @@ export default function CommentPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <MyBarChart url={url} number={numComments} model_id={modelID} />
             <PieChart data={fakedataPie} outerRadius={200} innerRadius={100} />
-        </div>
+            <BarChartRace data={barchartData}/> {/*data prop to BarChartRace */}
+          </div>
         </>
       )}      
       </Container>
