@@ -24,7 +24,6 @@ from flask import Response
 import requests
 app = Flask(__name__)
 
-
 # mise en place
 MAX_SEQUENCE_LENGTH=100
 
@@ -35,13 +34,16 @@ def runner():
         return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
     jobID = data.get('jobID')
     modelID = data.get('model_id')
-    if modelID not in [1, 2]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2'}), 400
+    if modelID not in [1, 2, 3]:
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
     try:
-        sentences = SQLConnector(jobID)
-        padded_sequences, testCorpus = generate_embeddings(sentences)
-        SaveCorpusSQL(testCorpus, jobID)
-        push_mongo(padded_sequences, jobID)
+        comments = get_comments_from_db(jobID)
+        if modelID == 1 or modelID == 2:
+            padded_sequences = generate_embeddings(comments)
+            push_mongo(padded_sequences, jobID)
+
+        testCorpus = perform_preprocessing(comments)
+        add_corpus_to_db(testCorpus, jobID)
         model_runner_url = 'http://nlp_service:8003/api/callmodel'
         response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
         if response.status_code == 200:
@@ -95,8 +97,7 @@ def preprocess_text(text):
     return ' '.join(filtered_words)
     
 
-# Accessing MySQL
-def SQLConnector(jobID):
+def get_comments_from_db(jobID):
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
@@ -109,7 +110,7 @@ def SQLConnector(jobID):
     sentences = [row[0] for row in results]
     return sentences
 
-def SaveCorpusSQL(testCorpus, jobID):
+def add_corpus_to_db(testCorpus, jobID):
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
@@ -131,25 +132,13 @@ def SaveCorpusSQL(testCorpus, jobID):
     finally:
         connection.close()
 
-def generate_embeddings(sentences):
-    emoji_dict=emoji_dictionary()
-    testCorpus=[]
-    for text in sentences:
-            try:
-                lang = detect(text)
-            except:
-                lang = ""
-            if lang == "en":
-                newText = text.strip()
-                newText = replace_emojis(newText, emoji_dict)
-                newText = preprocess_text(newText)
-                testCorpus.append(newText)
-                
+def generate_embeddings(comments):            
     with open('tokenizer.pickle', 'rb') as handle:
         tokenizer = pickle.load(handle)
+    testCorpus = perform_preprocessing(comments)
     input_sequences = tokenizer.texts_to_sequences(testCorpus)
     padded_sequences = tf.keras.preprocessing.sequence.pad_sequences(input_sequences, maxlen=MAX_SEQUENCE_LENGTH)
-    return padded_sequences, testCorpus
+    return padded_sequences
  
 def push_mongo(padded_sequences, jobID):
     try:
@@ -165,6 +154,21 @@ def push_mongo(padded_sequences, jobID):
         print("Error while inserting data to MongoDB:")
         print(str(e))
 
+def perform_preprocessing(comments):
+    emoji_dict=emoji_dictionary()
+    testCorpus=[]
+    for text in comments:
+        try:
+            lang = detect(text)
+        except:
+            lang = ""
+        if lang == "en":
+            newText = text.strip()
+            newText = replace_emojis(newText, emoji_dict)
+            newText = preprocess_text(newText)
+            testCorpus.append(newText)
+    return testCorpus
+    
 if __name__ == '__main__':
     app.run(debug = True, host='0.0.0.0', port=8002)
 
