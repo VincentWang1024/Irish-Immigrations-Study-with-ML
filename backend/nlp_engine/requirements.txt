@@ -8,5 +8,5 @@ flask
 tensorflow_text
 python-dotenv
 mysql-connector-python
-xgb
+xgboost
 scikit-learn
