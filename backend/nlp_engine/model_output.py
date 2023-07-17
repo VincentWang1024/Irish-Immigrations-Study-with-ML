@@ -14,6 +14,8 @@ import pandas as pd
 from flask import Flask
 import pickle
 from flask import request, jsonify, Response
+from sklearn.feature_extraction.text import TfidfVectorizer
+import xgboost as xgb
 
 app = Flask(__name__)
 
@@ -46,7 +48,7 @@ class CNNModel(nn.Module):
         return logits
 
 # mise en place
-savedModels={1: "savedModels/CNN_Model_Torch.pth", 2: "savedModels/LSTM_Model", 3: "savedModels", 'goemotion': "savedModels/TransformerSentiment"}
+savedModels={1: "savedModels/CNN_Model_Torch.pth", 2: "savedModels/LSTM_Model", 'goemotion': "savedModels/TransformerSentiment"}
 MAX_EMOTIONS_LENGTH=4
 
 @app.route("/api/callmodel", methods=['POST'])
@@ -186,15 +188,32 @@ def get_predictions_from_cnn_and_lstm(padded_sequences, prediction_summary, clas
     return prediction_summary
 
 def get_predictions_from_xgb(testCorpus, prediction_summary, class_labels):
-    tfidf_vectorizer = pickle.load(open('xgb_tfidf', 'rb'))
-    tfidf_features = tfidf_vectorizer.transform(testCorpus)
-    xgb_model = pickle.load(open('xgb_model', 'rb'))
+    with open('savedModels/xgb_tfidf.pkl', 'rb') as handle:
+        vectorizer = pickle.load(handle)
+    tfidf_features = vectorizer.transform(testCorpus)
+    with open('savedModels/xgb_model.pkl', 'rb') as handle:
+        xgb_model = pickle.load(handle)
     predictions = xgb_model.predict(tfidf_features)
-    values, counts = np.unique(predictions, return_counts=True)
+    # values, counts = np.unique(predictions, return_counts=True)
+    
+    # for val, cnt in np.nditer([values,counts], flags=['buffered'], op_flags=['readonly','copy'], op_dtypes=['int64','int64']):
+    #     label = class_labels[val]
+    #     prediction_summary[label] = cnt
+    count_zeros = 0
+    count_ones = 0
+    count_twos = 0
+    for pred in predictions.flat:
+        if pred == 0:
+            count_zeros = count_zeros + 1
+        elif pred == 1:
+            count_ones = count_ones + 1
+        elif pred == 2:
+            count_twos = count_twos + 1
+    
+    prediction_summary[class_labels[0]] = count_zeros
+    prediction_summary[class_labels[1]] = count_ones
+    prediction_summary[class_labels[2]] = count_twos
 
-    for val, cnt in np.nditer([values,counts]):
-        label = class_labels[val]
-        prediction_summary[label] = cnt
     return prediction_summary
 
 def get_vector_data_from_db(jobID):
