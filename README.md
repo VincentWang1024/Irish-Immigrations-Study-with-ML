@@ -61,4 +61,15 @@ please change the container name to localhost in the URLs used in code
 to call the other services.
 
 For example the  YTComment.py the hostname in post call to preprocessing_script must be changed. e.g. preprocess_url = 'http://localhost:5002/api/preprocess' .
+<<<<<<< HEAD
 Perform these changes in urls used for calls in other services as well.
+=======
+Perform these changes in urls used for calls in other services as well.
+
+# CI/CD
+### Configuration 
+To check the existing configuration used for running test cases go through main.yml file in .Github/workflows
+
+### Test Requirements
+Please mention the requirements to execute your testcases in requirements-test.txt file
+>>>>>>> main

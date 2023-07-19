@@ -1,5 +1,6 @@
 tensorflow==2.13.0
 protobuf==3.20.3
+torch==2.0.1
 pandas
 numpy==1.23.3
 pymongo==4.4.0
@@ -7,3 +8,8 @@ flask
 tensorflow_text
 python-dotenv
 mysql-connector-python
+<<<<<<< HEAD
+=======
+xgboost
+scikit-learn
+>>>>>>> main

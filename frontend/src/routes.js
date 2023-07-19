@@ -22,8 +22,8 @@ export default function Router() {
         { path: 'app', element: <DashboardAppPage /> },
         { path: 'comment', element: <CommentPage /> },
         { path: 'model_management', element: <ModelManagement /> },
-        { path: 'products', element: <ProductsPage /> },
-        { path: 'blog', element: <BlogPage /> },
+        // { path: 'products', element: <ProductsPage /> },
+        // { path: 'blog', element: <BlogPage /> },
       ],
     },
     {
@@ -38,10 +38,10 @@ export default function Router() {
         { path: '*', element: <Navigate to="/404" /> },
       ],
     },
-    {
-      path: '*',
-      element: <Navigate to="/404" replace />,
-    },
+    // {
+    //   path: '*',
+    //   element: <Navigate to="/404" replace />,
+    // },
   ]);
 
   return routes;

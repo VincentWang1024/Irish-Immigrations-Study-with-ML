@@ -10,8 +10,8 @@ services:
     container_name: broker_service
     ports:
       - "8000:8000"  # Forward the exposed port 5000 on the container to port 5000 on the host machine
-    env_file:
-      - ".env"
+    # env_file:
+    #   - ".env"
     networks:
       - immigration_in_Ireland
   data_service: 
@@ -19,8 +19,8 @@ services:
     container_name: data_service 
     ports:
       - "8001:8001" 
-    env_file:
-      - ".env"
+    # env_file:
+    #   - ".env"
     networks:
       - immigration_in_Ireland
   preprocess_service: 
@@ -28,8 +28,8 @@ services:
     container_name: preprocess_service  
     ports:
       - "8002:8002" 
-    env_file:
-      - ".env"
+    # env_file:
+    #   - ".env"
     networks:
       - immigration_in_Ireland
   nlp_service: 
@@ -37,8 +37,8 @@ services:
     container_name: nlp_service   
     ports:
       - "8003:8003"
-    env_file:
-      - ".env"
+    # env_file:
+    #   - ".env"
     networks:
       - immigration_in_Ireland
 

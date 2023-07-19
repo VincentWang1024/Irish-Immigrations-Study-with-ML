@@ -7,3 +7,5 @@ pymysql
 requests
 mysql-connector-python
 python-dotenv
+confluent_kafka
+google-api-python-client
