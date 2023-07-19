@@ -97,13 +97,6 @@ export default function ModelManagement() {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
-<<<<<<< HEAD
-    fetch('http://127.0.0.1:8000/api/model/find')
-    // fetch('https://5d800273-5a71-4616-9066-1ce6d6c6280e.mock.pstmn.io/127.0.0.1/model')
-        .then(response => response.json())
-        .then(data => setMODELLIST(data))  // Set the state once data is fetched
-        .catch(error => console.error('Error:', error));
-=======
 
     console.log(process.env.REACT_APP_NLP_PLATFORM_API_URL);
     axios.get(`${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/model/find`)
@@ -111,21 +104,14 @@ export default function ModelManagement() {
          setMODELLIST(response.data);
      })  // Set the state once data is fetched
      .catch(error => console.error('Error:', error));
->>>>>>> main
   }, []);  // Empty dependency array means this effect runs once on mount
 
   const updateModelEnable = async (id, enable) => {
     console.log(enable)
     try {
-<<<<<<< HEAD
-      const response = await axios.put(`http://localhost:8000/api/model/update`, {
-        model_id: {id},  
-        enable: {enable}
-=======
       const response = await axios.put(`${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/model/update`, {
         model_id: id,  
         enable: enable
->>>>>>> main
       });
 
       if (response.status === 200) {
