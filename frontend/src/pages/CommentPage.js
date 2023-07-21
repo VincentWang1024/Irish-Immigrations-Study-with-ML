@@ -5,6 +5,8 @@ import { filter } from 'lodash';
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import ListItemText from '@mui/material/ListItemText';
 
 // @mui
 import {
@@ -42,9 +44,9 @@ export default function CommentPage() {
     const [thumbnail, setThumbnail] = useState('');
     const [prevUrl, setPrevUrl] = useState('');
     const [isHovered, setIsHovered] = useState(false);
-
-    const [preprocessingList, setPreprocessingList] = useState([]);
-    const [selectedPreprocessing, setSelectedPreprocessing] = useState(null);
+    const [preprocessName, setPreprocessName] = useState([]);
+    // const [preprocessNameList, setPreprocessNameList] = useState([]);
+    const preprocessNameList=[];
 
     const fakedataPie = [
       { label: 'Apples', value: 10 }, 
@@ -73,25 +75,54 @@ export default function CommentPage() {
            setMODELLIST(response.data);
        })  // Set the state once data is fetched
        .catch(error => console.error('Error:', error));
-
+      
       axios.get(`${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/preprocessing/find`)
         .then(response => {
-          setPreprocessingList(response.data);
+          setPreprocessNameList(response.data);
         })
         .catch(error => console.error('Error:', error));
     }, []);  // Empty dependency array means this effect runs once on mount
 
-    const handlePreprocessingChange = (e) => {
-      const selectedOption = e.target.value;
-      const matchingOption = preprocessingList.find(option => option.name === selectedOption);
-      setSelectedPreprocessing(matchingOption);
+    const ITEM_HEIGHT = 48;
+    const ITEM_PADDING_TOP = 8;
+    const MenuProps = {
+      PaperProps: {
+        style: {
+          maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+          width: 250,
+        },
+      },
+    };
+
+    const preprocessNames = [
+      'Oliver Hansen',
+      'Van Henry',
+      'April Tucker',
+      'Ralph Hubbard',
+      'Omar Alexander',
+      'Carlos Abbott',
+      'Miriam Wagner',
+      'Bradley Wilkerson',
+      'Virginia Andrews',
+      'Kelly Snyder',
+    ];
+    const handlePreprocessChange = (event) => {
+      const {
+        target: { value },
+      } = event;
+      setPreprocessName(
+        // On autofill we get a stringified value.
+        typeof value === 'string' ? value.split(',') : value,
+      );
+      preprocessNameList.push(value);
+      console.log(preprocessNameList);
     };
 
     const handleSubmit = (e) => {
       e.preventDefault();
       console.log(apikey)
       // setUrlChange(!urlChange);
-      console.log('Selected preprocessing ID:', selectedPreprocessing.id)
+      // console.log('Selected preprocessing ID:', preprocessList.id)
       setSubmitted(true);
     };
 
@@ -155,18 +186,25 @@ export default function CommentPage() {
                     ))}
                 </Select>
             </FormControl>
-            <FormControl style={{width:'10%'}}>
-            <InputLabel>Preprocessing</InputLabel>
-                <Select
-                    value={selectedPreprocessing ? selectedPreprocessing.name : ''}
-                    onChange={handlePreprocessingChange}
-                >
-                    {preprocessingList.map((option) => (
-                        <MenuItem key={option.id} value={option.name}>
-                            {option.name}
-                        </MenuItem>
-                    ))}
-                </Select>
+            <FormControl sx={{ m: 1, width: 300 }}>
+              <InputLabel id="demo-multiple-checkbox-label">preprocessing</InputLabel>
+              <Select
+                labelId="demo-multiple-checkbox-label"
+                id="demo-multiple-checkbox"
+                multiple
+                value={preprocessName}
+                onChange={handlePreprocessChange}
+                input={<OutlinedInput label="Tag" />}
+                renderValue={(selected) => selected.join(', ')}
+                MenuProps={MenuProps}
+              >
+                {preprocessNames.map((name) => (
+                  <MenuItem key={name} value={name}>
+                    <Checkbox checked={preprocessName.indexOf(name) > -1} />
+                    <ListItemText primary={name} />
+                  </MenuItem>
+                ))}
+              </Select>
             </FormControl>
 
           <Button type="submit" variant="c`ontained" color="primary">
@@ -182,7 +220,7 @@ export default function CommentPage() {
           <img src={thumbnail} alt={title} style={{ width: '300px' }} /> */}
             <br/>
             <br/>
-            <MyBarChart url={url} number={numComments} model_id={modelID} />
+            <MyBarChart url={url} number={numComments} model_id={modelID} preprocessList={preprocessList}/>
         </>
       )}      
       </Container>

@@ -8,7 +8,7 @@ import { Chart } from "react-google-charts";
 import axios from 'axios';
 
 
-const MyBarChart = ({ url, number, model_id }) => {
+const MyBarChart = ({ url, number, model_id, selectedPreprocessing }) => {
   const [chartData, setChartData] = useState([]);
   const colors = ['#8884d8', '#82ca9d', '#ffc658', '#FF8042', '#0088FE'];
   const fakeData = []
@@ -18,11 +18,13 @@ const MyBarChart = ({ url, number, model_id }) => {
   };
   useEffect(() => {
       const fetchChartData = async () => {
+        console.log(selectedPreprocessing);
         try {
             const response = await axios.post(`${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/comments`, {
                 url, 
                 number, 
-                model_id
+                model_id,
+                selectedPreprocessing
             });
     
             const data = response.data;
