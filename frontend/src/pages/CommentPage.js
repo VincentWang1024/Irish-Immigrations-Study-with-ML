@@ -43,6 +43,9 @@ export default function CommentPage() {
     const [prevUrl, setPrevUrl] = useState('');
     const [isHovered, setIsHovered] = useState(false);
 
+    const [preprocessingList, setPreprocessingList] = useState([]);
+    const [selectedPreprocessing, setSelectedPreprocessing] = useState(null);
+
     const fakedataPie = [
       { label: 'Apples', value: 10 }, 
       { label: 'Oranges', value: 20 },
@@ -70,12 +73,25 @@ export default function CommentPage() {
            setMODELLIST(response.data);
        })  // Set the state once data is fetched
        .catch(error => console.error('Error:', error));
+
+      axios.get(`${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/preprocessing/find`)
+        .then(response => {
+          setPreprocessingList(response.data);
+        })
+        .catch(error => console.error('Error:', error));
     }, []);  // Empty dependency array means this effect runs once on mount
+
+    const handlePreprocessingChange = (e) => {
+      const selectedOption = e.target.value;
+      const matchingOption = preprocessingList.find(option => option.name === selectedOption);
+      setSelectedPreprocessing(matchingOption);
+    };
 
     const handleSubmit = (e) => {
       e.preventDefault();
       console.log(apikey)
       // setUrlChange(!urlChange);
+      console.log('Selected preprocessing ID:', selectedPreprocessing.id)
       setSubmitted(true);
     };
 
@@ -106,16 +122,16 @@ export default function CommentPage() {
               <Typography variant="h5" sx={{ mt: 3, mb: 2 }}>
                   Video Title: {title}
                 </Typography>
-                <img src={thumbnail} alt={title} style={{ width: '300px' }} />
+                <img src={thumbnail} alt={title} style={{ width: '200px' }} />
               </>
             } placement="right">
               <TextField
                 label="Enter a URL"
-                style={{ width: '70%' }}
+                style={{ width: '50%' }}
                 onChange={(e) => setUrl(e.target.value)}
               />
             </Tooltip>
-            <FormControl style={{ width: '15%' }}>
+            <FormControl style={{ width: '10%' }}>
             <InputLabel>#Comments</InputLabel>
             <Select
               value={numComments}
@@ -135,6 +151,19 @@ export default function CommentPage() {
                     {MODELLIST.map((model) => (
                         <MenuItem key={model.id} value={model.id}>
                             {model.name}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+            <FormControl style={{width:'10%'}}>
+            <InputLabel>Preprocessing</InputLabel>
+                <Select
+                    value={selectedPreprocessing ? selectedPreprocessing.name : ''}
+                    onChange={handlePreprocessingChange}
+                >
+                    {preprocessingList.map((option) => (
+                        <MenuItem key={option.id} value={option.name}>
+                            {option.name}
                         </MenuItem>
                     ))}
                 </Select>
