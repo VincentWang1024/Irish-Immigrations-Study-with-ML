@@ -37,20 +37,15 @@ def runner():
     if modelID not in [1, 2, 3]:
         return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
     try:
-<<<<<<< HEAD
-        sentences = SQLConnector(jobID)
-        padded_sequences, testCorpus = generate_embeddings(sentences)
-        SaveCorpusSQL(testCorpus, jobID)
-        push_mongo(padded_sequences, jobID)
-=======
         comments = get_comments_from_db(jobID)
         if modelID == 1 or modelID == 2:
             padded_sequences = generate_embeddings(comments)
             push_mongo(padded_sequences, jobID)
 
-        testCorpus = perform_preprocessing(comments)
+        testCorpus= perform_preprocessing(comments)
         add_corpus_to_db(testCorpus, jobID)
->>>>>>> main
+        topicCorpus=perform_preprocessing_topic_text(comments) 
+        add_topicCorpus_to_db(topicCorpus, jobID)
         model_runner_url = 'http://nlp_service:8003/api/callmodel'
         response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
         if response.status_code == 200:
@@ -101,7 +96,20 @@ def preprocess_text(text):
     words = [lemmatizer.lemmatize(word, pos=get_wordnet_pos(pos)) if get_wordnet_pos(pos) else word for word, pos in tagged]
     stop_words = set(stopwords.words('english'))
     filtered_words = [word for word in words if word not in stop_words]
-    return ' '.join(filtered_words)
+    filtered_text = ' '.join(filtered_words)
+    return filtered_text 
+
+def preprocess_topic_text(text):  
+    text = text.lower()
+    text = re.sub(r"[^a-zA-Z0-9\s]", "", text)
+    topicCorpus = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+    tagged_topic=pos_tag(topicCorpus)
+    topicCorpus = [lemmatizer.lemmatize(word, pos=get_wordnet_pos(pos)) if get_wordnet_pos(pos) else word for word, pos in tagged_topic]
+    stop_words = set(stopwords.words('english'))
+    topic_text = [word for word in topicCorpus if word not in stop_words]
+    topic_corpus = ' '.join(topic_text)
+    return topic_corpus
     
 
 def get_comments_from_db(jobID):
@@ -134,6 +142,26 @@ def add_corpus_to_db(testCorpus, jobID):
         connection.commit()
     except Exception as e:
         print(f"An error occurred while storing data: {str(e)}")
+        return []
+
+    finally:
+        connection.close()
+    
+def add_topicCorpus_to_db(topicCorpus, jobID):
+    try:
+        connection = mysql.connector.connect(
+        user=os.getenv('MYSQL_ROOT_USERNAME'),
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        host=os.getenv('MYSQL_HOST'),
+        database=os.getenv('MYSQL_DB')
+        )
+        with connection.cursor() as cursor:
+            for sentence in topicCorpus:
+                insert_query = 'INSERT INTO topics_tokens (job_id, sentence) VALUES (%s, %s)'
+                cursor.execute(insert_query,(jobID, sentence))
+            connection.commit()
+    except Exception as e:
+        print(f"An error occurred while storing topic data: {str(e)}")
         return []
 
     finally:
@@ -172,9 +200,24 @@ def perform_preprocessing(comments):
         if lang == "en":
             newText = text.strip()
             newText = replace_emojis(newText, emoji_dict)
-            newText = preprocess_text(newText)
+            newText = preprocess_text(newText) 
             testCorpus.append(newText)
     return testCorpus
+
+def perform_preprocessing_topic_text(comments):
+    emoji_dict=emoji_dictionary()
+    topicCorpus=[]
+    for text in comments:
+        try:
+            lang = detect(text)
+        except:
+            lang = ""
+        if lang == "en":
+            newText = text.strip()
+            newText = replace_emojis(newText, emoji_dict)
+            topic_text = preprocess_topic_text(newText) 
+            topicCorpus.append(topic_text)
+    return topicCorpus
     
 if __name__ == '__main__':
     app.run(debug = True, host='0.0.0.0', port=8002)

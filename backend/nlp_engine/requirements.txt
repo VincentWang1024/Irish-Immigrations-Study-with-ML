@@ -8,8 +8,7 @@ flask
 tensorflow_text
 python-dotenv
 mysql-connector-python
-<<<<<<< HEAD
-=======
 xgboost
 scikit-learn
->>>>>>> main
+hdbscan
+bertopic

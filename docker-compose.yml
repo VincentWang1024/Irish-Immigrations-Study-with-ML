@@ -42,5 +42,15 @@ services:
     networks:
       - immigration_in_Ireland
 
+  model_deployment: 
+    build: ./model_deployment
+    container_name: model_deployment  
+    ports:
+      - "8004:8004"
+    env_file:
+      - ".env"
+    networks:
+      - immigration_in_Ireland
+
 networks:
   immigration_in_Ireland:
