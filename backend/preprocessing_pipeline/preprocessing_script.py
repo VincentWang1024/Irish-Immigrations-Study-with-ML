@@ -30,10 +30,11 @@ MAX_SEQUENCE_LENGTH=100
 @app.route("/api/preprocess", methods=['POST'])
 def runner():
     data = request.json
-    if 'jobID' not in data or 'model_id' not in data:
-        return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
+    if 'jobID' not in data or 'model_id' not in data or 'median_time' not in data:
+        return jsonify({'status': 'error', 'message': 'jobID, model_id, and median_time are required fields'}), 400
     jobID = data.get('jobID')
     modelID = data.get('model_id')
+    median_time = data.get('median_time')
     if modelID not in [1, 2, 3]:
         return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
     try:
@@ -47,7 +48,7 @@ def runner():
         topicCorpus=perform_preprocessing_topic_text(comments) 
         add_topicCorpus_to_db(topicCorpus, jobID)
         model_runner_url = 'http://nlp_service:8003/api/callmodel'
-        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
+        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID, 'median_time': median_time})
         if response.status_code == 200:
             return jsonify({'status': 'success', 'message': 'Preprocessing completed and model_runner executed successfully'}), 200
         else:
