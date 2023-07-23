@@ -1,11 +1,11 @@
-import os
 import torch
 import torch.nn as nn
 import pickle
 import numpy as np
+import xgboost as xgb
 from flask import Flask, request, jsonify
 
-savedModels={1: "CNN_Model_Torch.pth", 2: "LSTM_Model_Torch.pth", 'goemotion': "TransformerSentiment"}
+savedModels={1: "CNN_Model_Torch.pth", 2: "LSTM_Model_Torch.pth"}
 class CNNModel(nn.Module):
     def __init__(self, embedding_matrix, num_classes):
         super(CNNModel, self).__init__()
@@ -31,6 +31,9 @@ class CNNModel(nn.Module):
         fc1_output = torch.relu(self.fc1(flattened))
         logits = self.fc2(fc1_output)
         return logits
+    
+    def __str__(self):
+        return "CNNModel Loaded"
 
 class LSTMModel(nn.Module):
     def __init__(self, embedding_matrix, hidden_size=64, num_classes=3):
@@ -56,6 +59,9 @@ class LSTMModel(nn.Module):
         x = self.fc2(x)
         return x
     
+    def __str__(self):
+        return "LSTM Loaded"
+    
 
 def pad_and_stack_embeddings(embeddings):
     max_length = max(len(embedding) for embedding in embeddings)
@@ -69,45 +75,145 @@ def pad_and_stack_embeddings(embeddings):
     return input_tensor
 
 
-def prediction(input_tensor, model_id):
+def prediction(model_id, input_tensor=None, testCorpus=None):
+    class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
+    prediction_summary = {label: 0 for label in class_labels}  
     with open('embedding_matrix.pickle', 'rb') as handle:
-        embedding_matrix = pickle.load(handle)
+        embedding_matrix = pickle.load(handle) 
     if model_id==1:
         loaded_model = CNNModel(embedding_matrix, num_classes=3)
-    if model_id==2:
+        prediction_summary = predict_with_embedding(loaded_model, prediction_summary, model_id, input_tensor, class_labels)
+        return prediction_summary
+    elif model_id==2:
         loaded_model = LSTMModel(embedding_matrix, num_classes=3)
-    loaded_model.load_state_dict(torch.load(savedModels[model_id]))
+        prediction_summary = predict_with_embedding(loaded_model, prediction_summary, model_id, input_tensor, class_labels)
+        return prediction_summary
+    elif model_id==3:
+        prediction_summary = predict_with_xgboost(prediction_summary, model_id)
+        return prediction_summary
+    elif model_id == 4:
+        loaded_cnn_model = CNNModel(embedding_matrix, num_classes=3)
+        prediction_summary_cnn = predict_with_embedding(loaded_cnn_model, prediction_summary.copy(), 1, input_tensor, class_labels)
+        print(prediction_summary_cnn)
+        prediction_summary_xgb = predict_with_xgboost(prediction_summary.copy(), testCorpus)
+        print(prediction_summary_xgb)
+        combined_summary = combine_results([prediction_summary_cnn, prediction_summary_xgb])
+        print(combined_summary)
+        return combined_summary
+    elif model_id == 5:
+        loaded_lstm_model = LSTMModel(embedding_matrix, num_classes=3)
+        prediction_summary_lstm = predict_with_embedding(loaded_lstm_model, prediction_summary.copy(), 2, input_tensor, class_labels)
+        prediction_summary_xgb = predict_with_xgboost(prediction_summary.copy(), testCorpus)
+        combined_summary = combine_results([prediction_summary_lstm, prediction_summary_xgb])
+        return combined_summary
+    elif model_id == 6:
+        loaded_cnn_model = CNNModel(embedding_matrix, num_classes=3)
+        loaded_lstm_model = LSTMModel(embedding_matrix, num_classes=3)
+        prediction_summary_cnn = predict_with_embedding(loaded_cnn_model, prediction_summary.copy(), 1, input_tensor, class_labels)
+        prediction_summary_lstm = predict_with_embedding(loaded_lstm_model, prediction_summary.copy(), 2, input_tensor, class_labels)
+        combined_summary = combine_results([prediction_summary_cnn, prediction_summary_lstm])
+        return combined_summary
+    else:
+        raise ValueError("Invalid model_id. Please choose a valid model_id from 1 to 6.")
+    
+
+def combine_results(predictions_list):
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
-    prediction_summary = {label: 0 for label in class_labels}
+    combined_summary = {label: 0 for label in class_labels}
+
+    for predictions in predictions_list:
+        for label, count in predictions.items():
+            combined_summary[label] += count
+
+    return combined_summary
+
+
+def predict_with_embedding(loaded_model, prediction_summary, model_id, input_tensor, class_labels):
+    
+    torch.manual_seed(42)
+    np.random.seed(42)
+    
+    loaded_model.load_state_dict(torch.load(savedModels[model_id]))
     loaded_model.eval()
     with torch.no_grad():
         val_outputs = loaded_model(input_tensor)
         val_predictions = torch.argmax(val_outputs, dim=1).tolist()
-
     predicted_classes = np.array(val_predictions)
-        
     for predicted_class in predicted_classes:
         predicted_label = class_labels[predicted_class]
         prediction_summary[predicted_label] += 1
     return prediction_summary
 
+def predict_with_xgboost(prediction_summary, testCorpus):
+    class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
+    with open('xgb_tfidf.pkl', 'rb') as handle:
+        vectorizer = pickle.load(handle)
+    tfidf_features = vectorizer.transform(testCorpus)
+    with open('xgb_model.pkl', 'rb') as handle:
+        xgb_model = pickle.load(handle)
+    predictions = xgb_model.predict(tfidf_features)
+    count_zeros = 0
+    count_ones = 0
+    count_twos = 0
+    for pred in predictions.flat:
+        if pred == 0:
+            count_zeros = count_zeros + 1
+        elif pred == 1:
+            count_ones = count_ones + 1
+        elif pred == 2:
+            count_twos = count_twos + 1
+    prediction_summary[class_labels[0]] = count_zeros
+    prediction_summary[class_labels[1]] = count_ones
+    prediction_summary[class_labels[2]] = count_twos
+    return prediction_summary
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET","POST"])
+
+"""
+Model_id mapping:-
+1=CNN
+2=LSTM
+3=XGBOOST
+4=CNN+XGBOOST
+5=LSTM+XGBOOST
+6=CNN+LSTM
+"""
+@app.route("/predict", methods=["POST"])
 def index():
     if request.method=="POST":
         try:
             json_data = request.get_json()
-            if 'embeddings' not in json_data or 'model_id' not in json_data:
-                return jsonify({'status': 'error', 'message': 'embeddings and model_id are required fields'}), 400
-            embeddings = json_data["embeddings"]
+            if 'model_id' not in json_data:
+                return jsonify({'status': 'error', 'message': 'data and model_id are required fields'}), 400
+
             modelID = json_data["model_id"]
-            if embeddings is None or len(embeddings)==0:
-                return jsonify({'status': 'error', 'message': 'Padded Sequence not found in request'}), 400
-            input_tensor = pad_and_stack_embeddings(embeddings)
-            prediction_summary = prediction(input_tensor, modelID)
-            return jsonify(prediction_summary), 200
+            if modelID==1 or modelID==2 or modelID==6:
+                embeddings = json_data["embeddings"]
+                if embeddings is None or len(embeddings)==0:
+                    return jsonify({'status': 'error', 'message': 'Padded Sequence not found in request'}), 400
+                input_tensor = pad_and_stack_embeddings(embeddings)
+                prediction_summary = prediction(modelID, input_tensor=input_tensor)
+                return jsonify(prediction_summary), 200
+            elif modelID==3:
+                testCorpus=json_data["test_corpus"]
+                if testCorpus is None or len(testCorpus)==0:    
+                    return jsonify({'status': 'error', 'message': 'test_corpus not found in request'}), 400
+                prediction_summary = prediction(modelID, testCorpus=testCorpus)
+                return jsonify(prediction_summary), 200
+            elif modelID==4 or modelID==5:
+                embeddings = json_data["embeddings"]
+                testCorpus=json_data["test_corpus"]
+                if embeddings is None or len(embeddings)==0:
+                    return jsonify({'status': 'error', 'message': 'Padded Sequence not found in request'}), 400
+                if testCorpus is None or len(testCorpus)==0:    
+                    return jsonify({'status': 'error', 'message': 'test_corpus not found in request'}), 400
+                input_tensor = pad_and_stack_embeddings(embeddings)
+                prediction_summary = prediction(modelID, input_tensor=input_tensor, testCorpus=testCorpus)
+                return jsonify(prediction_summary), 200
+            else:
+               return jsonify({'status': 'error', 'message': 'Received invalid modelId'}), 400 
+
         except Exception as e:
             return jsonify({'error': str(e)})
     return "OK"

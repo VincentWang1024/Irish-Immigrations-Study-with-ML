@@ -1,3 +1,4 @@
 torch==2.0.1
 numpy==1.23.3
 flask
+xgboost
