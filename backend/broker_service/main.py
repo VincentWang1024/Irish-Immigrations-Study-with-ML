@@ -10,18 +10,20 @@ import json
 import requests
 from datetime import datetime
 from producer.main import batch_engine
+import sqlite3
 
-@app.route('/api/comments', methods=['POST'])
+@app.route('/api/comments', methods=['GET','POST'])
 def comments():
     print(request.json)
     try:
         _json = request.json
         # if _number and _url and _model_id and request.method == 'POST':
-        if 'number' not in _json or 'url' not in _json or 'model_id' not in _json:
-                return jsonify({'status': 'error', 'message': 'url, commentcount, jobID, and model_id are required fields'}), 400
+        if 'number' not in _json or 'url' not in _json or 'model_id' not in _json or 'preprocessIDs' not in _json:
+                return jsonify({'status': 'error', 'message': 'url, commentcount, jobID, preprocessIDs, and model_id are required fields'}), 400
         _number = _json['number']
         _url = _json['url']
         _model_id = _json['model_id']
+        _preprocess_IDs = _json['preprocessIDs']
         # print(_number, _url, _model_id)
 
         job_id = str(uuid.uuid1())
@@ -33,7 +35,8 @@ def comments():
             "url": _url,
             "commentcount":_number,
             "jobid": job_id,
-            "modelid": _model_id
+            "modelid": _model_id,
+            "pps_id": _preprocess_IDs
         }, timeout=600)
         # breakpoint()
         print(f'print response: {r}')
@@ -130,6 +133,82 @@ def batch_runner():
     except Exception as e:
         showMessage()
         return jsonify(message=str(e), status=500) # added this line
+
+
+@app.route('/api/dashboard', methods=['GET'])
+def dashboard_find():
+    try:
+        # store result into database
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        # List of SQL queries
+        sqls = [
+            ["row1_1", "SELECT count(*) as numOfVideos FROM job"],
+            ["row1_2", "SELECT count(*) as numOfcomments FROM usercomments"],
+            ["row1_34", "SELECT * FROM dashboardRow1"],
+            ["row2_1", "SELECT * FROM dashboardBar"],
+            ["row2_2", "SELECT * FROM dashboardPie"],
+            ["row3_2", "SELECT topic_info FROM topics_result_table"]
+        ]
+
+        # Execute each query
+        results={}
+        for entry in sqls:
+            cursor.execute(entry[1])
+            result = cursor.fetchall()
+            results[entry[0]]=result
+
+        for item in results['row3_2']:
+                item["topic_info"] = json.loads(item["topic_info"])
+
+        original_data = results['row3_2']
+
+        new_data = []
+        for item in original_data:
+            topic_info = item['topic_info']
+            id = topic_info['id'] + 1  # Because you want to start ids from 1
+            name = topic_info['name']
+            words = topic_info['words']
+            new_data.append({
+                'id': id,
+                'name': name,
+                'words': words
+            })
+        results['row3_2']=new_data
+        print(results)
+ 
+        response = jsonify(results)
+        print(response)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        print(e)
+        return jsonify(message=str(e), status=500) # added this line
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route('/api/preprocessing/find', methods=['GET'])
+def preprocessing_find():
+    try:
+        # store result into database
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        sql = "SELECT * FROM preprocessing_options"
+        cursor.execute(sql)
+        conn.commit()
+        modelRows = cursor.fetchall()
+        response = jsonify(modelRows)
+        print(response)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        print(e)
+        return jsonify(message=str(e), status=500) # added this line
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def goemotion_find(job_id):

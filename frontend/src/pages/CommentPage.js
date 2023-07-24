@@ -44,9 +44,9 @@ export default function CommentPage() {
     const [thumbnail, setThumbnail] = useState('');
     const [prevUrl, setPrevUrl] = useState('');
     const [isHovered, setIsHovered] = useState(false);
-    const [preprocessName, setPreprocessName] = useState([]);
-    // const [preprocessNameList, setPreprocessNameList] = useState([]);
-    const preprocessNameList=[];
+    const [selectedPreprocessName, setSelectedPreprocessName] = useState([]);
+    const [selectedPreprocessIDS, setSelectedPreprocessIDS] = useState([]);
+    const [preprocessNameList, setPreprocessNameList] = useState([]);
 
     const fakedataPie = [
       { label: 'Apples', value: 10 }, 
@@ -75,10 +75,12 @@ export default function CommentPage() {
            setMODELLIST(response.data);
        })  // Set the state once data is fetched
        .catch(error => console.error('Error:', error));
-      
+
       axios.get(`${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/preprocessing/find`)
         .then(response => {
-          setPreprocessNameList(response.data);
+          const entries = response.data;
+          console.log("entries: ", entries);
+          setPreprocessNameList(entries);
         })
         .catch(error => console.error('Error:', error));
     }, []);  // Empty dependency array means this effect runs once on mount
@@ -95,27 +97,31 @@ export default function CommentPage() {
     };
 
     const preprocessNames = [
-      'Oliver Hansen',
-      'Van Henry',
-      'April Tucker',
-      'Ralph Hubbard',
-      'Omar Alexander',
-      'Carlos Abbott',
-      'Miriam Wagner',
-      'Bradley Wilkerson',
-      'Virginia Andrews',
-      'Kelly Snyder',
+      // 'Oliver Hansen',
+      // 'Van Henry',
+      // 'April Tucker',
+      // 'Ralph Hubbard',
+      // 'Omar Alexander',
+      // 'Carlos Abbott',
+      // 'Miriam Wagner',
+      // 'Bradley Wilkerson',
+      // 'Virginia Andrews',
+      // 'Kelly Snyder',
     ];
-    const handlePreprocessChange = (event) => {
+    
+    const handlePreprocessChange = (event, obj) => {
       const {
-        target: { value },
+        target: { key, value },
       } = event;
-      setPreprocessName(
+      setSelectedPreprocessName(
         // On autofill we get a stringified value.
         typeof value === 'string' ? value.split(',') : value,
       );
-      preprocessNameList.push(value);
-      console.log(preprocessNameList);
+      console.log(obj.key);
+
+      setSelectedPreprocessIDS([...selectedPreprocessIDS, parseInt(obj.key.slice(2))])
+      console.log(selectedPreprocessName);
+      console.log(selectedPreprocessIDS);
     };
 
     const handleSubmit = (e) => {
@@ -192,16 +198,16 @@ export default function CommentPage() {
                 labelId="demo-multiple-checkbox-label"
                 id="demo-multiple-checkbox"
                 multiple
-                value={preprocessName}
+                value={selectedPreprocessName}
                 onChange={handlePreprocessChange}
                 input={<OutlinedInput label="Tag" />}
                 renderValue={(selected) => selected.join(', ')}
                 MenuProps={MenuProps}
               >
-                {preprocessNames.map((name) => (
-                  <MenuItem key={name} value={name}>
-                    <Checkbox checked={preprocessName.indexOf(name) > -1} />
-                    <ListItemText primary={name} />
+                {preprocessNameList.map((item) => (
+                  <MenuItem key={item.pps_id} value={item.name}>
+                    <Checkbox checked={selectedPreprocessName.indexOf(item.name) > -1} />
+                    <ListItemText primary={item.name} />
                   </MenuItem>
                 ))}
               </Select>
@@ -220,7 +226,7 @@ export default function CommentPage() {
           <img src={thumbnail} alt={title} style={{ width: '300px' }} /> */}
             <br/>
             <br/>
-            <MyBarChart url={url} number={numComments} model_id={modelID} preprocessList={preprocessList}/>
+            <MyBarChart url={url} number={numComments} model_id={modelID} preprocessIDs={selectedPreprocessIDS}/>
         </>
       )}      
       </Container>
