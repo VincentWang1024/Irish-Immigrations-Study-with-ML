@@ -34,8 +34,8 @@ def runner():
         return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
     jobID = data.get('jobID')
     modelID = data.get('model_id')
-    if modelID not in [1, 2, 3]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
+    if modelID not in [1, 2, 3, 4, 5, 6]:
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3,4,5,6'}), 400
     try:
         comments = get_comments_from_db(jobID)
         if modelID == 1 or modelID == 2:

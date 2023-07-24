@@ -94,11 +94,8 @@ def prediction(model_id, input_tensor=None, testCorpus=None):
     elif model_id == 4:
         loaded_cnn_model = CNNModel(embedding_matrix, num_classes=3)
         prediction_summary_cnn = predict_with_embedding(loaded_cnn_model, prediction_summary.copy(), 1, input_tensor, class_labels)
-        print(prediction_summary_cnn)
         prediction_summary_xgb = predict_with_xgboost(prediction_summary.copy(), testCorpus)
-        print(prediction_summary_xgb)
         combined_summary = combine_results([prediction_summary_cnn, prediction_summary_xgb])
-        print(combined_summary)
         return combined_summary
     elif model_id == 5:
         loaded_lstm_model = LSTMModel(embedding_matrix, num_classes=3)
@@ -129,10 +126,8 @@ def combine_results(predictions_list):
 
 
 def predict_with_embedding(loaded_model, prediction_summary, model_id, input_tensor, class_labels):
-    
     torch.manual_seed(42)
     np.random.seed(42)
-    
     loaded_model.load_state_dict(torch.load(savedModels[model_id]))
     loaded_model.eval()
     with torch.no_grad():
@@ -186,7 +181,6 @@ def index():
             json_data = request.get_json()
             if 'model_id' not in json_data:
                 return jsonify({'status': 'error', 'message': 'data and model_id are required fields'}), 400
-
             modelID = json_data["model_id"]
             if modelID==1 or modelID==2 or modelID==6:
                 embeddings = json_data["embeddings"]
@@ -194,12 +188,18 @@ def index():
                     return jsonify({'status': 'error', 'message': 'Padded Sequence not found in request'}), 400
                 input_tensor = pad_and_stack_embeddings(embeddings)
                 prediction_summary = prediction(modelID, input_tensor=input_tensor)
+                for key, value in prediction_summary.items():
+                    if isinstance(value, np.ndarray):
+                        prediction_summary[key] = value.tolist()
                 return jsonify(prediction_summary), 200
             elif modelID==3:
                 testCorpus=json_data["test_corpus"]
                 if testCorpus is None or len(testCorpus)==0:    
                     return jsonify({'status': 'error', 'message': 'test_corpus not found in request'}), 400
                 prediction_summary = prediction(modelID, testCorpus=testCorpus)
+                for key, value in prediction_summary.items():
+                    if isinstance(value, np.ndarray):
+                        prediction_summary[key] = value.tolist()
                 return jsonify(prediction_summary), 200
             elif modelID==4 or modelID==5:
                 embeddings = json_data["embeddings"]
@@ -210,6 +210,9 @@ def index():
                     return jsonify({'status': 'error', 'message': 'test_corpus not found in request'}), 400
                 input_tensor = pad_and_stack_embeddings(embeddings)
                 prediction_summary = prediction(modelID, input_tensor=input_tensor, testCorpus=testCorpus)
+                for key, value in prediction_summary.items():
+                    if isinstance(value, np.ndarray):
+                        prediction_summary[key] = value.tolist()
                 return jsonify(prediction_summary), 200
             else:
                return jsonify({'status': 'error', 'message': 'Received invalid modelId'}), 400 

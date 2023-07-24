@@ -11,6 +11,7 @@ import mysql.connector
 import pandas as pd
 from flask import Flask
 from flask import request, jsonify
+from flask import Response
 
 app = Flask(__name__)
 
@@ -29,7 +30,7 @@ def model_runner():
     jobID = data.get('jobID')
     modelID = data.get('model_id')
     if modelID not in [1, 2, 3, 4, 5, 6]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3,4,5,6'}), 400
     
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
     #prediction_summary = {label: 0 for label in class_labels}
@@ -202,10 +203,11 @@ def topic_detection(topicCorpus):
 
 def get_predictions_from_cnn_and_lstm(padded_sequences, model_id):
     model_base_url = 'http://model_deployment:8004/predict'
+    print(type(padded_sequences))
     try:
         request_body={
             "model_id":model_id,
-            "embeddings":padded_sequences.tolist()
+            "embeddings":[embedding.tolist() for embedding in padded_sequences]
         }
         response = requests.post(model_base_url, json=request_body)
         response_data = response.json() 
@@ -221,8 +223,9 @@ def get_predictions_from_cnn_and_lstm(padded_sequences, model_id):
     except Exception as e:
         raise ValueError(f"Unexpected error - {str(e)}")
 
-def get_predictions_from_xgb(testCorpus, vector_array, model_id):
+def get_predictions_from_xgb(testCorpus, padded_sequences, model_id):
     model_base_url = 'http://model_deployment:8004/predict'
+    print(type(padded_sequences))
     try:
         if model_id==3:
             request_body={
@@ -233,7 +236,7 @@ def get_predictions_from_xgb(testCorpus, vector_array, model_id):
             request_body={
             "model_id":model_id,
             "test_corpus":testCorpus,
-            "embeddings":vector_array.tolist()
+            "embeddings":[embedding.tolist() for embedding in padded_sequences]
             }
         response = requests.post(model_base_url, json=request_body)
         response_data = response.json() 
