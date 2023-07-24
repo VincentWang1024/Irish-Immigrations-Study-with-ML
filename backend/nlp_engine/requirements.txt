@@ -8,5 +8,3 @@ tensorflow_text
 python-dotenv
 mysql-connector-python
 scikit-learn
-hdbscan
-bertopic

@@ -11,7 +11,6 @@ import mysql.connector
 import pandas as pd
 from flask import Flask
 from flask import request, jsonify
-from bertopic import BERTopic
 
 app = Flask(__name__)
 
@@ -185,21 +184,24 @@ def add_topic_results_to_db(topicsDetected, jobID):
 
 def topic_detection(topicCorpus):
     topics_list = []
-    topic_model = BERTopic.load("savedModels/BERTOPIC_Model")
-    topics, probs = topic_model.transform(topicCorpus)
-    data=topic_model.get_topics()
-    for topic_id, topic_words in data.items():
-        if 0 <= topic_id <= 4:
-            top_words_list = []
-            for word, probability in topic_words[:5]:
-                word_data = {'value': word, 'count': round(probability * 100, 2)}
-                top_words_list.append(word_data)
-            topic_data = {'id': topic_id, 'name': f'Topic {topic_id + 1}', 'words': top_words_list}
-            topics_list.append(topic_data)
+    model_base_url = 'http://topic_modelling:8005/predictTopic'
+    try: 
+        request_body={
+            "topic_corpus":topicCorpus
+        }
+        response = requests.post(model_base_url, json=request_body)
+        response_data = response.json()
+        if response.status_code == 200:
+            return response_data
+        else:
+            raise ValueError(f"Request failed for topic Modelling {response.status_code}")
+    except exceptions as e:
+        logging.error(f"Error: {str(e)}")
+    
     return topics_list
 
 def get_predictions_from_cnn_and_lstm(padded_sequences, model_id):
-    model_base_url = 'http://nlp_service:8004/api/predict'
+    model_base_url = 'http://model_deployment:8004/predict'
     try:
         request_body={
             "model_id":model_id,
@@ -220,7 +222,7 @@ def get_predictions_from_cnn_and_lstm(padded_sequences, model_id):
         raise ValueError(f"Unexpected error - {str(e)}")
 
 def get_predictions_from_xgb(testCorpus, vector_array, model_id):
-    model_base_url = 'http://nlp_service:8004/api/predict'
+    model_base_url = 'http://model_deployment:8004/predict'
     try:
         if model_id==3:
             request_body={
