@@ -1,3 +1,6 @@
+/* eslint-disable */
+
+import React, { useEffect,useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { faker } from '@faker-js/faker';
 // @mui
@@ -18,10 +21,189 @@ import {
   AppConversionRates,
 } from '../sections/@dashboard/app';
 
+import WordCloud from '../components/chart/WordCloud';
+import BarChartRace from '../components/chart/BarChartRace'
+import axios from 'axios';
+
 // ----------------------------------------------------------------------
 
 export default function DashboardAppPage() {
   const theme = useTheme();
+  const wordcloudfakedata = [
+    { id: 1, name: 'Topic 1', words: [
+      { value: 'Lorem', count: 200 }, 
+      { value: 'Ipsum', count: 100 },
+      { value: 'aaaa', count: 120 },
+      { value: 'bbbbb', count: 50 },
+      { value: 'cccc', count: 60 },
+      { value: 'dddd', count: 160 },
+      { value: 'eeeee', count: 90 },
+      { value: 'ffff', count: 110 },
+  ] },
+    { id: 2, name: 'Topic 2', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
+    { id: 3, name: 'Topic 3', words: [{ value: 'Lorem', count: 20 }, { value: 'Ipsum', count: 10 }] },
+    { id: 4, name: 'Topic 4', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
+    { id: 5, name: 'Topic 5', words: [{ value: 'Lorem', count: 20 }, { value: 'Ipsum', count: 10 }] },
+    { id: 6, name: 'Topic 6', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
+    { id: 7, name: 'Topic 7', words: [{ value: 'Lorem', count: 20 }, { value: 'Ipsum', count: 10 }] },
+    { id: 8, name: 'Topic 8', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
+    // Add more topics with their associated words
+  ];
+  const barRaceData = [
+    {
+      date: "2000-01-01",
+      name: "Joy",
+      value: 72537
+    },
+    {
+      date: "2000-01-01",
+      name: "Sadness",
+      value: 56042
+    },
+    {
+      date: "2000-01-01",
+      name: "Surprise",
+      value: 48000
+    },
+    {
+      date: "2000-01-01",
+      name: "Anger",
+      value: 60000
+    },
+    {
+      date: "2002-03-01",
+      name: "Joy",
+      value: 90003
+    },
+    {
+      date: "2002-03-01",
+      name: "Sadness",
+      value: 65000
+    },
+    {
+      date: "2002-03-01",
+      name: "Surprise",
+      value: 70000
+    },
+    {
+      date: "2002-03-01",
+      name: "Anger",
+      value: 80000
+    },
+    {
+      date: "2004-01-01",
+      name: "Joy",
+      value: 120000
+    },
+    {
+      date: "2004-01-01",
+      name: "Sadness",
+      value: 75000
+    },
+    {
+      date: "2004-01-01",
+      name: "Surprise",
+      value: 85000
+    },
+    {
+      date: "2004-01-01",
+      name: "Anger",
+      value: 90000
+    },
+    {
+      date: "2005-01-01",
+      name: "Joy",
+      value: 130000
+    },
+    {
+      date: "2005-01-01",
+      name: "Sadness",
+      value: 80000
+    },
+    {
+      date: "2005-01-01",
+      name: "Surprise",
+      value: 95000
+    },
+    {
+      date: "2005-01-01",
+      name: "Anger",
+      value: 100000
+    },
+    {
+      date: "2006-01-01",
+      name: "Joy",
+      value: 140000
+    },
+    {
+      date: "2006-01-01",
+      name: "Sadness",
+      value: 85000
+    },
+    {
+      date: "2006-01-01",
+      name: "Surprise",
+      value: 100000
+    },
+    {
+      date: "2006-01-01",
+      name: "Anger",
+      value: 110000
+    },
+    {
+      date: "2006-01-01",
+      name: "Something",
+      value: 110000
+    }
+  ];
+
+  const [data, setData] = useState(null);
+  const [pieData, setPieData] = useState([]);
+  useEffect(() => {
+      try {
+          fetch('http://127.0.0.1:8000/api/dashboard')
+          .then(response => response.json())
+          .then(data => setData(data))
+          .catch(error => console.error(error));                              
+          setData(data);
+
+          console.log('hook print: ', data);
+          // let result = data.piechart_data[0].goemotion_result.result;
+  
+          // let transformedData2 = [["Task", "Hours per Day"]];
+  
+          // for (let i = 0; i < result.length; i++) {
+          //     let emotion = Object.keys(result[i])[0];
+          //     let value = result[i][emotion];
+          //     transformedData2.push([emotion, value]);
+          // }
+  
+          // console.log(transformedData);
+          // console.log(transformedData2);
+
+          // setSelectedTopic(word_cloud_data);
+          
+  
+      } catch (error) {
+          console.error('Error:', error);
+      } finally { /* empty */ }
+  }, []);
+
+  if (!data) return 'Loading......';  // Render some loading text or a spinner here
+
+  // const pData = data.row2_2.map(item => ({
+  //   label: item.label,
+  //   value: item.ratio,
+  // }));
+  // setPieData(pData)
+
+
+  console.log('after hook: ',data);
+  console.log(data.row1_1[0].numOfVideos);
+  console.log(data.row1_2[0].numOfcomments);
+  console.log(data.row1_34[1].numOfComments);
+  console.log(data.row1_34[2].numOfComments);
+  console.log(data.row3_2);
 
   return (
     <>
@@ -36,19 +218,20 @@ export default function DashboardAppPage() {
 
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Total Videos" total={714000} icon={'ant-design:android-filled'} />
+            {/* <AppWidgetSummary title="Total Videos" total={data.row1_1[0].numOfVideos} icon={'ant-design:android-filled'} /> */}
+            <AppWidgetSummary title="Total Videos" total={200000} icon={'ant-design:android-filled'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Total Comments" total={1352831} color="info" icon={'ant-design:apple-filled'} />
+            {/* <AppWidgetSummary title="Total Comments" total={data.row1_2[0].numOfcomments} color="info" icon={'ant-design:apple-filled'} /> */}
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="#Hateful" total={1723315} color="warning" icon={'ant-design:windows-filled'} />
+            {/* <AppWidgetSummary title="#Non Hateful" total={data.row1_34[1].numOfComments} color="warning" icon={'ant-design:windows-filled'} /> */}
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="#Non Hateful" total={234} color="error" icon={'ant-design:bug-filled'} />
+            {/* <AppWidgetSummary title="#Hateful" total={data.row1_34[2].numOfComments} color="error" icon={'ant-design:bug-filled'} /> */}
           </Grid>
 
           <Grid item xs={12} md={6} lg={8}>
@@ -94,12 +277,8 @@ export default function DashboardAppPage() {
           <Grid item xs={12} md={6} lg={4}>
             <AppCurrentVisits
               title="Goemotion piechart"
-              chartData={[
-                { label: 'America', value: 4344 },
-                { label: 'Asia', value: 5435 },
-                { label: 'Europe', value: 1443 },
-                { label: 'Africa', value: 4443 },
-              ]}
+              
+              chartData={pieData}
               chartColors={[
                 theme.palette.primary.main,
                 theme.palette.info.main,
@@ -110,7 +289,8 @@ export default function DashboardAppPage() {
           </Grid>
 
           <Grid item xs={12} md={6} lg={8}>
-            <AppConversionRates
+            <BarChartRace data={barRaceData} />
+            {/* <AppConversionRates
               title="Emotion Racing"
               subheader="(+43%) than last year"
               chartData={[
@@ -125,20 +305,12 @@ export default function DashboardAppPage() {
                 { label: 'United States', value: 1200 },
                 { label: 'United Kingdom', value: 1380 },
               ]}
-            />
+            /> */}
           </Grid>
 
           <Grid item xs={12} md={6} lg={4}>
-            <AppCurrentSubject
-              title="Word Cloud"
-              chartLabels={['English', 'History', 'Physics', 'Geography', 'Chinese', 'Math']}
-              chartData={[
-                { name: 'Series 1', data: [80, 50, 30, 40, 100, 20] },
-                { name: 'Series 2', data: [20, 30, 40, 80, 20, 80] },
-                { name: 'Series 3', data: [44, 76, 78, 13, 43, 10] },
-              ]}
-              chartColors={[...Array(6)].map(() => theme.palette.text.secondary)}
-            />
+            {/* <WordCloud title="Word Cloud" word_cloud_data={data.row3_2} /> */}
+            <WordCloud title="Word Cloud" word_cloud_data={wordcloudfakedata} />
           </Grid>
 {/* 
           <Grid item xs={12} md={6} lg={8}>
@@ -217,3 +389,4 @@ export default function DashboardAppPage() {
     </>
   );
 }
+

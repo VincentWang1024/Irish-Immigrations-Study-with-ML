@@ -1,8 +1,10 @@
+/* eslint-disable */
+
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
-import data from "./data";
+// import data from "./data";
 
-const BarChartRace = () => {
+function BarChartRace ({data}) {
   const ref = useRef();
 
   const duration = 750;
