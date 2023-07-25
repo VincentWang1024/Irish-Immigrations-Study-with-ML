@@ -148,7 +148,7 @@ def add_predictions_to_db(prediction_summary, jobID, modelID):
         with connection.cursor() as cursor:
             for label, ratio in prediction_summary.items():
                 job_output_query = "INSERT INTO job_output (label, ratio, job_id, model) VALUES (%s, %s, %s, %s)"
-                cursor.execute(job_output_query, (label, ratio, jobID, models[modelID]))
+                cursor.execute(job_output_query, (label, ratio, jobID, models[modelID - 1]))
             connection.commit()
             return True
     except Exception as e:
