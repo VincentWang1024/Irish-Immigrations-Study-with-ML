@@ -161,13 +161,20 @@ export default function DashboardAppPage() {
   const [pieData, setPieData] = useState([]);
   useEffect(() => {
       try {
-          fetch('http://127.0.0.1:8000/api/dashboard')
+          const url = `${process.env.REACT_APP_NLP_PLATFORM_API_URL}/api/dashboard`
+          fetch(url)
           .then(response => response.json())
           .then(data => setData(data))
           .catch(error => console.error(error));                              
           setData(data);
 
           console.log('hook print: ', data);
+
+          const pData = data.row2_2.map(item => ({
+            label: item.label,
+            value: item.ratio,
+          }));
+          setPieData(pData)
           // let result = data.piechart_data[0].goemotion_result.result;
   
           // let transformedData2 = [["Task", "Hours per Day"]];
@@ -191,11 +198,7 @@ export default function DashboardAppPage() {
 
   if (!data) return 'Loading......';  // Render some loading text or a spinner here
 
-  // const pData = data.row2_2.map(item => ({
-  //   label: item.label,
-  //   value: item.ratio,
-  // }));
-  // setPieData(pData)
+
 
 
   console.log('after hook: ',data);
@@ -218,20 +221,20 @@ export default function DashboardAppPage() {
 
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
-            {/* <AppWidgetSummary title="Total Videos" total={data.row1_1[0].numOfVideos} icon={'ant-design:android-filled'} /> */}
-            <AppWidgetSummary title="Total Videos" total={200000} icon={'ant-design:android-filled'} />
+            <AppWidgetSummary title="Total Videos" total={data.row1_1[0].numOfVideos} icon={'ant-design:android-filled'} />
+            {/* <AppWidgetSummary title="Total Videos" total={200000} icon={'ant-design:android-filled'} /> */}
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            {/* <AppWidgetSummary title="Total Comments" total={data.row1_2[0].numOfcomments} color="info" icon={'ant-design:apple-filled'} /> */}
+            <AppWidgetSummary title="Total Comments" total={data.row1_2[0].numOfcomments} color="info" icon={'ant-design:apple-filled'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            {/* <AppWidgetSummary title="#Non Hateful" total={data.row1_34[1].numOfComments} color="warning" icon={'ant-design:windows-filled'} /> */}
+            <AppWidgetSummary title="#Non Hateful" total={data.row1_34[1].numOfComments} color="warning" icon={'ant-design:windows-filled'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            {/* <AppWidgetSummary title="#Hateful" total={data.row1_34[2].numOfComments} color="error" icon={'ant-design:bug-filled'} /> */}
+            <AppWidgetSummary title="#Hateful" total={data.row1_34[2].numOfComments} color="error" icon={'ant-design:bug-filled'} />
           </Grid>
 
           <Grid item xs={12} md={6} lg={8}>
@@ -309,8 +312,8 @@ export default function DashboardAppPage() {
           </Grid>
 
           <Grid item xs={12} md={6} lg={4}>
-            {/* <WordCloud title="Word Cloud" word_cloud_data={data.row3_2} /> */}
-            <WordCloud title="Word Cloud" word_cloud_data={wordcloudfakedata} />
+            <WordCloud title="Word Cloud" word_cloud_data={data.row3_2} />
+            {/* <WordCloud title="Word Cloud" word_cloud_data={wordcloudfakedata} /> */}
           </Grid>
 {/* 
           <Grid item xs={12} md={6} lg={8}>
