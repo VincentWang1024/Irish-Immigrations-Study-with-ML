@@ -4,13 +4,12 @@ import pymysql
 from app import app
 from config import mysql
 from flask import jsonify
-from flask import flash, request, Response
+from flask import request
 import uuid
 import json
 import requests
 from datetime import datetime
 from producer.main import batch_engine
-import sqlite3
 
 @app.route('/api/comments', methods=['GET','POST'])
 def comments():
@@ -31,7 +30,7 @@ def comments():
 
         print("...........request data service......................")
         r = requests.post('http://data_service:8001/comments', json={
-        # r = requests.post('http://127.0.0.1:8001/comments', json={
+        #r = requests.post('http://127.0.0.1:8001/comments', json={
             "url": _url,
             "commentcount":_number,
             "jobid": job_id,
@@ -69,7 +68,6 @@ def comments():
         print ("Timeout Error:",errt)
     return jsonify({'status': 'error', 'message': 'core logic not executed!'}), 501
     
-
 @app.route('/api/model/find', methods=['GET'])
 def model_find():
     try:
@@ -90,7 +88,6 @@ def model_find():
     finally:
         cursor.close()
         conn.close()
-
 
 @app.route('/api/model/update', methods=['PUT'])
 def model_update():
@@ -119,7 +116,6 @@ def model_update():
             conn.close()
     return jsonify({'status': 'error', 'message': 'model update failure!'}), 500
 
-
 @app.route('/api/batch', methods=['POST'])
 def batch_runner():
     try:
@@ -133,7 +129,6 @@ def batch_runner():
     except Exception as e:
         showMessage()
         return jsonify(message=str(e), status=500) # added this line
-
 
 @app.route('/api/dashboard', methods=['GET'])
 def dashboard_find():
@@ -188,7 +183,6 @@ def dashboard_find():
         cursor.close()
         conn.close()
 
-
 @app.route('/api/preprocessing/find', methods=['GET'])
 def preprocessing_find():
     try:
@@ -210,7 +204,6 @@ def preprocessing_find():
         cursor.close()
         conn.close()
 
-
 def goemotion_find(job_id):
     try:
         # store result into database
@@ -227,7 +220,6 @@ def goemotion_find(job_id):
         cursor.close()
         conn.close()
 
-
 def get_result(job_id):
     conn = mysql.connect()
     cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -237,7 +229,6 @@ def get_result(job_id):
     resultRows = cursor.fetchall()
     print("length of result "+str(len(resultRows)))
     return resultRows
-
 
 def save_job(job_id, _url, _model_id, job_time):
     conn=None
@@ -256,7 +247,6 @@ def save_job(job_id, _url, _model_id, job_time):
             cursor.close()
         if conn:
             conn.close()
-
 
 def job_output_polling(job_id):
     try:
@@ -285,7 +275,6 @@ def showMessage(error=None):
     response = jsonify(message)
     response.status_code = 404
     return response
-
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=8000)

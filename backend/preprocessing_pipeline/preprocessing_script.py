@@ -199,19 +199,18 @@ def perform_preprocessing(comments,pps_id):
             newText = default_preprocess_text(newText) 
 
             for id in pps_id:
-                match Preprocessing(id):
-                    case Preprocessing.STEMMING:
-                        newText = perform_stemming(newText)
-                    case Preprocessing.LEMMATIZE:
-                        newText = perform_lemmatization(newText)
-                    case Preprocessing.STOPWORD:
-                        newText = perform_stopwords_removal(newText)
-                    case Preprocessing.EXPANDED:
-                        newText = perform_preprocessing_on_expanded_text(newText)
-                    case Preprocessing.EMOJI:
-                        newText = perform_emoji_preprocessing(newText)
-                    case Preprocessing.MISC:
-                        newText = perform_additional_preprocessing(newText)
+                if Preprocessing(id) == Preprocessing.STEMMING:
+                    newText = perform_stemming(newText)
+                elif Preprocessing(id) == Preprocessing.LEMMATIZE:
+                    newText = perform_lemmatization(newText)
+                elif Preprocessing(id) == Preprocessing.STOPWORD:
+                    newText = perform_stopwords_removal(newText)
+                elif Preprocessing(id) == Preprocessing.EXPANDED:
+                    newText = perform_preprocessing_on_expanded_text(newText)
+                elif Preprocessing(id) == Preprocessing.EMOJI:
+                    newText = perform_emoji_preprocessing(newText)
+                elif Preprocessing(id) ==Preprocessing.MISC:
+                    newText = perform_additional_preprocessing(newText)
             testCorpus.append(newText)
     return testCorpus
 
