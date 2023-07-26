@@ -35,12 +35,13 @@ app = Flask(__name__)
 def process_comments():
     try:
         data = request.json
-        if 'url' not in data or 'commentcount' not in data or 'jobid' not in data or 'modelid' not in data:
-            return jsonify({'status': 'error', 'message': 'url, commentcount, jobID, and model_id are required fields'}), 400
+        if 'url' not in data or 'commentcount' not in data or 'jobid' not in data or 'modelid' not in data or 'pps_id' not in data:
+            return jsonify({'status': 'error', 'message': 'url, commentcount, jobID, model_id, and pps_id are required fields'}), 400
         url = data['url']
         comment_count = data['commentcount']
         job_id = data['jobid']
         model_id = data['modelid']
+        pps_id = data['pps_id']
         if not url:
             raise ValueError("Empty url")
         elif not comment_count:
@@ -49,14 +50,16 @@ def process_comments():
             raise ValueError("Empty job id")
         elif not model_id:
             raise ValueError("Empty model id")
+        elif not pps_id:
+            raise ValueError("Empty pps_id")
 
         load_dotenv()
         video_id = get_video_id_from_url(url)
         comments = get_comments(video_id, comment_count)
         save_comments_to_database(job_id, comments)
         preprocess_url = 'http://preprocess_service:8002/api/preprocess'
-        # preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
-        response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id}, timeout=600)
+        #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
+        response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id}, timeout=600)
         if response.status_code == 200:
             return Response("Comments OK", status=200)
         else:
