@@ -1,8 +1,6 @@
 Flask>=2.2.2
 flask_cors==3.0.10
 Flask-MySQL==1.5.2
-pandas==1.3.2
-sqlalchemy==1.4.23
 pymysql
 requests
 mysql-connector-python

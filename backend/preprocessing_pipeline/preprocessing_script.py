@@ -57,7 +57,8 @@ def runner():
         topicCorpus = perform_preprocessing_topic_text(comments) 
         add_topicCorpus_to_db(topicCorpus, jobID)
         model_runner_url = 'http://nlp_service:8003/api/callmodel'
-        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID}, timeout=600)
+        #model_runner_url = 'http://localhost:8003/api/callmodel'
+        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
         if response.status_code == 200:
             return jsonify({'status': 'success', 'message': 'Preprocessing completed and model_runner executed successfully'}), 200
         else:
@@ -196,40 +197,22 @@ def perform_preprocessing(comments,pps_id):
             newText = text.strip()
             newText = replace_emojis(newText, emoji_dict)
             newText = default_preprocess_text(newText) 
-            
+
             for id in pps_id:
-                match Preprocessing(id):
-                    case Preprocessing.STEMMING:
-                        newText = perform_stemming(newText)
-                    case Preprocessing.LEMMATIZE:
-                        
-
-
-
-
-
-                          
-                           
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                           
+                if Preprocessing(id) == Preprocessing.STEMMING:
+                    newText = perform_stemming(newText)
+                elif Preprocessing(id) == Preprocessing.LEMMATIZE:
+                    newText = perform_lemmatization(newText)
+                elif Preprocessing(id) == Preprocessing.STOPWORD:
+                    newText = perform_stopwords_removal(newText)
+                elif Preprocessing(id) == Preprocessing.EXPANDED:
+                    newText = perform_preprocessing_on_expanded_text(newText)
+                elif Preprocessing(id) == Preprocessing.EMOJI:
+                    newText = perform_emoji_preprocessing(newText)
+                elif Preprocessing(id) ==Preprocessing.MISC:
+                    newText = perform_additional_preprocessing(newText)
+            testCorpus.append(newText)
+    return testCorpus
 
 def perform_preprocessing_topic_text(comments):
     emoji_dict = emoji_dictionary()
