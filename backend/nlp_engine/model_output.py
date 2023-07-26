@@ -1,4 +1,3 @@
-from pymongo import MongoClient
 import requests
 import tensorflow as tf
 import numpy as np
@@ -34,15 +33,13 @@ def model_runner():
     
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
     #prediction_summary = {label: 0 for label in class_labels}
-    testCorpus = get_preprocessed_text_from_db(jobID)
-    vector_array = get_vector_data_from_db(jobID)
     topicCorpus = get_topic_text_from_db(jobID)
-
-    if modelID == 1 or modelID == 2 or modelID ==6:
-        prediction_summary = get_predictions_from_cnn_and_lstm(vector_array, modelID)
-    elif modelID == 3 or modelID == 4 or modelID == 5:
-        prediction_summary = get_predictions_from_xgb(testCorpus, vector_array, modelID)
-
+    if topicCorpus is None or len(topicCorpus)==0:    
+        return jsonify({'status': 'error', 'message': 'topicCorpus not found in DB'}), 400
+    testCorpus=get_preprocessed_text_from_db(jobID)
+    if testCorpus is None or len(testCorpus)==0:    
+        return jsonify({'status': 'error', 'message': 'test_corpus not found in DB'}), 400
+    prediction_summary = get_predictions_from_deployment(modelID, jobID)
     prediction_summary = get_predictions_from_go_emotions(prediction_summary, testCorpus, jobID)
     sentiment_dict = {key: value for key, value in prediction_summary.items() if key not in ['emotions']}
     emotions_json = prediction_summary.get('emotions', {})
@@ -58,6 +55,19 @@ def model_runner():
     else:
         return jsonify({'status': 'error', 'message': 'Failed to execute model_runner, Persistence Error'}), 500
 
+def get_preprocessed_text_from_db(jobID):
+    connection = mysql.connector.connect(
+        user=os.getenv('MYSQL_ROOT_USERNAME'),
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        host=os.getenv('MYSQL_HOST'),
+        database=os.getenv('MYSQL_DB')
+    )
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `sentence` FROM `emotions_texts` WHERE `job_id` = %s;', (jobID,))
+    results = cursor.fetchall()
+    sentences = [row[0] for row in results]
+    return sentences
 
 def add_predictions_to_db(prediction_summary, jobID, modelID):
     models=["CNN", "LSTM", "XGBOOST"]
@@ -80,19 +90,6 @@ def add_predictions_to_db(prediction_summary, jobID, modelID):
     finally:
         connection.close()
 
-def get_preprocessed_text_from_db(jobID):
-    connection = mysql.connector.connect(
-        user=os.getenv('MYSQL_ROOT_USERNAME'),
-        password=os.getenv('MYSQL_ROOT_PASSWORD'),
-        host=os.getenv('MYSQL_HOST'),
-        database=os.getenv('MYSQL_DB')
-    )
-
-    cursor = connection.cursor()
-    cursor.execute('SELECT `sentence` FROM `emotions_texts` WHERE `job_id` = %s;', (jobID,))
-    results = cursor.fetchall()
-    sentences = [row[0] for row in results]
-    return sentences
 
 def get_topic_text_from_db(jobID):
     topicCorpus = []
@@ -201,13 +198,12 @@ def topic_detection(topicCorpus):
     
     return topics_list
 
-def get_predictions_from_cnn_and_lstm(padded_sequences, model_id):
+def get_predictions_from_deployment(model_id, job_id):
     model_base_url = 'http://model_deployment:8004/predict'
-    print(type(padded_sequences))
     try:
         request_body={
             "model_id":model_id,
-            "embeddings":[embedding.tolist() for embedding in padded_sequences]
+            "job_id": job_id
         }
         response = requests.post(model_base_url, json=request_body)
         response_data = response.json() 
@@ -223,53 +219,6 @@ def get_predictions_from_cnn_and_lstm(padded_sequences, model_id):
     except Exception as e:
         raise ValueError(f"Unexpected error - {str(e)}")
 
-def get_predictions_from_xgb(testCorpus, padded_sequences, model_id):
-    model_base_url = 'http://model_deployment:8004/predict'
-    print(type(padded_sequences))
-    try:
-        if model_id==3:
-            request_body={
-            "model_id":model_id,
-            "test_corpus":testCorpus
-            }
-        if model_id==4 or model_id==5:
-            request_body={
-            "model_id":model_id,
-            "test_corpus":testCorpus,
-            "embeddings":[embedding.tolist() for embedding in padded_sequences]
-            }
-        response = requests.post(model_base_url, json=request_body)
-        response_data = response.json() 
-        if response.status_code == 200:
-            return response_data
-        elif response.status_code == 400:
-            error_message = response_data.get('message', 'Unknown error occurred.')
-            raise ValueError(f"Bad Request - {error_message}")
-        else:
-            raise ValueError(f"Request failed with status code {response.status_code}")
-    except requests.exceptions.RequestException as e:
-        raise ValueError(f"Request error - {str(e)}")
-    except Exception as e:
-        raise ValueError(f"Unexpected error - {str(e)}")
-
-def get_vector_data_from_db(jobID):
-    try:
-        CONNECTION_STRING = os.getenv('MONGO_URI')
-        client= MongoClient(CONNECTION_STRING)
-        db=client.get_database('Vector_Data')
-        collection=db.preprocessed_data
-        alldocuments = collection.find({str(jobID): {'$exists': True}})
-        vector_data = []
-        for document in alldocuments:
-            vector_data.append(document[str(jobID)])
-        if len(vector_data) == 0:
-            raise Exception('No vector data found in MongoDB')
-        vector_array = np.array(vector_data)
-        return vector_array       
-    except Exception as e:
-        print('Connection Failed')
-        print(str(e))
-        return jsonify({'status': 'error', 'message': 'No vector data found in MongoDB'}), 404
 
 def get_predictions_from_go_emotions(prediction_summary, testCorpus, jobID):
     testCorpus = pd.Series(testCorpus)

@@ -2,10 +2,76 @@ import torch
 import torch.nn as nn
 import pickle
 import numpy as np
+from dotenv import load_dotenv
 import xgboost as xgb
+from pymongo import MongoClient
+import mysql.connector
 from flask import Flask, request, jsonify
 
+load_dotenv()
+
 savedModels={1: "CNN_Model_Torch.pth", 2: "LSTM_Model_Torch.pth"}
+
+app = Flask(__name__)
+
+
+"""
+Model_id mapping:-
+1=CNN
+2=LSTM
+3=XGBOOST
+4=CNN+XGBOOST
+5=LSTM+XGBOOST
+6=CNN+LSTM
+"""
+@app.route("/predict", methods=["POST"])
+def index():
+    if request.method=="POST":
+        try:
+            json_data = request.get_json()
+            if 'model_id' not in json_data:
+                return jsonify({'status': 'error', 'message': 'data and model_id are required fields'}), 400
+            modelID = json_data["model_id"]
+            job_id = json_data["job_id"]
+            if job_id is None or job_id=="":
+                return jsonify({'status': 'error', 'message': 'job_id not found in request'}), 400
+            if modelID==1 or modelID==2 or modelID==6:
+                embeddings = get_vector_data_from_db(job_id)
+                input_tensor = pad_and_stack_embeddings(embeddings)
+                prediction_summary = prediction(modelID, input_tensor=input_tensor)
+                for key, value in prediction_summary.items():
+                    if isinstance(value, np.ndarray):
+                        prediction_summary[key] = value.tolist()
+                return jsonify(prediction_summary), 200
+            elif modelID==3:
+                testCorpus=get_preprocessed_text_from_db(job_id)
+                if testCorpus is None or len(testCorpus)==0:    
+                    return jsonify({'status': 'error', 'message': 'test_corpus not found in DB'}), 400
+                prediction_summary = prediction(modelID, testCorpus=testCorpus)
+                for key, value in prediction_summary.items():
+                    if isinstance(value, np.ndarray):
+                        prediction_summary[key] = value.tolist()
+                return jsonify(prediction_summary), 200
+            elif modelID==4 or modelID==5:
+                embeddings = get_vector_data_from_db(job_id)
+                testCorpus=get_preprocessed_text_from_db(job_id)
+                if embeddings is None or len(embeddings)==0:
+                    return jsonify({'status': 'error', 'message': 'Padded Sequence not found in DB'}), 400
+                if testCorpus is None or len(testCorpus)==0:    
+                    return jsonify({'status': 'error', 'message': 'test_corpus not found in DB'}), 400
+                input_tensor = pad_and_stack_embeddings(embeddings)
+                prediction_summary = prediction(modelID, input_tensor=input_tensor, testCorpus=testCorpus)
+                for key, value in prediction_summary.items():
+                    if isinstance(value, np.ndarray):
+                        prediction_summary[key] = value.tolist()
+                return jsonify(prediction_summary), 200
+            else:
+               return jsonify({'status': 'error', 'message': 'Received invalid modelId'}), 400 
+
+        except Exception as e:
+            return jsonify({'error': str(e)})
+    return "OK"
+
 class CNNModel(nn.Module):
     def __init__(self, embedding_matrix, num_classes):
         super(CNNModel, self).__init__()
@@ -67,13 +133,45 @@ def pad_and_stack_embeddings(embeddings):
     max_length = max(len(embedding) for embedding in embeddings)
     padded_embeddings = []
     for embedding in embeddings:
-        padding_length = max_length - len(embedding)
+        padding_length = max_leength - len(embedding)
         padded_embedding = embedding + [0.0] * padding_length
         padded_embeddings.append(padded_embedding)
     padded_sequences = np.array(padded_embeddings)
     input_tensor = torch.tensor(padded_sequences, dtype=torch.long)
     return input_tensor
 
+def get_preprocessed_text_from_db(jobID):
+    connection = mysql.connector.connect(
+        user=os.getenv('MYSQL_ROOT_USERNAME'),
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        host=os.getenv('MYSQL_HOST'),
+        database=os.getenv('MYSQL_DB')
+    )
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `sentence` FROM `emotions_texts` WHERE `job_id` = %s;', (jobID,))
+    results = cursor.fetchall()
+    sentences = [row[0] for row in results]
+    return sentences
+
+def get_vector_data_from_db(jobID):
+    try:
+        CONNECTION_STRING = os.getenv('MONGO_URI')
+        client= MongoClient(CONNECTION_STRING)
+        db=client.get_database('Vector_Data')
+        collection=db.preprocessed_data
+        alldocuments = collection.find({str(jobID): {'$exists': True}})
+        vector_data = []
+        for document in alldocuments:
+            vector_data.append(document[str(jobID)])
+        if len(vector_data) == 0:
+            raise Exception('No vector data found in MongoDB')
+        vector_array = np.array(vector_data)
+        return vector_array       
+    except Exception as e:
+        print('Connection Failed')
+        print(str(e))
+        return jsonify({'status': 'error', 'message': 'No vector data found in MongoDB'}), 404
 
 def prediction(model_id, input_tensor=None, testCorpus=None):
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
@@ -162,64 +260,6 @@ def predict_with_xgboost(prediction_summary, testCorpus):
     prediction_summary[class_labels[2]] = count_twos
     return prediction_summary
 
-app = Flask(__name__)
-
-
-"""
-Model_id mapping:-
-1=CNN
-2=LSTM
-3=XGBOOST
-4=CNN+XGBOOST
-5=LSTM+XGBOOST
-6=CNN+LSTM
-"""
-@app.route("/predict", methods=["POST"])
-def index():
-    if request.method=="POST":
-        try:
-            json_data = request.get_json()
-            if 'model_id' not in json_data:
-                return jsonify({'status': 'error', 'message': 'data and model_id are required fields'}), 400
-            modelID = json_data["model_id"]
-            if modelID==1 or modelID==2 or modelID==6:
-                embeddings = json_data["embeddings"]
-                if embeddings is None or len(embeddings)==0:
-                    return jsonify({'status': 'error', 'message': 'Padded Sequence not found in request'}), 400
-                input_tensor = pad_and_stack_embeddings(embeddings)
-                prediction_summary = prediction(modelID, input_tensor=input_tensor)
-                for key, value in prediction_summary.items():
-                    if isinstance(value, np.ndarray):
-                        prediction_summary[key] = value.tolist()
-                return jsonify(prediction_summary), 200
-            elif modelID==3:
-                testCorpus=json_data["test_corpus"]
-                if testCorpus is None or len(testCorpus)==0:    
-                    return jsonify({'status': 'error', 'message': 'test_corpus not found in request'}), 400
-                prediction_summary = prediction(modelID, testCorpus=testCorpus)
-                for key, value in prediction_summary.items():
-                    if isinstance(value, np.ndarray):
-                        prediction_summary[key] = value.tolist()
-                return jsonify(prediction_summary), 200
-            elif modelID==4 or modelID==5:
-                embeddings = json_data["embeddings"]
-                testCorpus=json_data["test_corpus"]
-                if embeddings is None or len(embeddings)==0:
-                    return jsonify({'status': 'error', 'message': 'Padded Sequence not found in request'}), 400
-                if testCorpus is None or len(testCorpus)==0:    
-                    return jsonify({'status': 'error', 'message': 'test_corpus not found in request'}), 400
-                input_tensor = pad_and_stack_embeddings(embeddings)
-                prediction_summary = prediction(modelID, input_tensor=input_tensor, testCorpus=testCorpus)
-                for key, value in prediction_summary.items():
-                    if isinstance(value, np.ndarray):
-                        prediction_summary[key] = value.tolist()
-                return jsonify(prediction_summary), 200
-            else:
-               return jsonify({'status': 'error', 'message': 'Received invalid modelId'}), 400 
-
-        except Exception as e:
-            return jsonify({'error': str(e)})
-    return "OK"
 
 if __name__== "__main__":
     app.run(debug=True,host='0.0.0.0', port=8004)
