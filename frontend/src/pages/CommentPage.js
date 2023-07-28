@@ -83,6 +83,8 @@ export default function CommentPage() {
           setPreprocessNameList(entries);
         })
         .catch(error => console.error('Error:', error));
+
+        fetchYoutubeData();
     }, []);  // Empty dependency array means this effect runs once on mount
 
     const ITEM_HEIGHT = 48;

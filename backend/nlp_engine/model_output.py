@@ -1,7 +1,4 @@
-from pymongo import MongoClient
 import requests
-import torch
-import torch.nn as nn
 import tensorflow as tf
 import numpy as np
 import json
@@ -12,68 +9,16 @@ import tensorflow_text as text
 import mysql.connector
 import pandas as pd
 from flask import Flask
-import pickle
-from flask import request, jsonify, Response
-from sklearn.feature_extraction.text import TfidfVectorizer
-import xgboost as xgb
-from bertopic import BERTopic
+from flask import request, jsonify
+from flask import Response
 
 app = Flask(__name__)
 
 load_dotenv()
 
-class CNNModel(nn.Module):
-    def __init__(self, embedding_matrix, num_classes):
-        super(CNNModel, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_matrix), freeze=True)
-        self.conv1 = nn.Conv1d(100, 32, kernel_size=3)
-        self.pool1 = nn.MaxPool1d(3)
-        self.dropout1 = nn.Dropout(0.3)
-        self.conv2 = nn.Conv1d(32, 64, kernel_size=3)
-        self.pool2 = nn.MaxPool1d(5)
-        self.dropout2 = nn.Dropout(0.3)
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(384, 128)
-        self.fc2 = nn.Linear(128, num_classes)
-        
-    def forward(self, x):
-        embedded = self.embedding(x)
-        embedded = embedded.permute(0, 2, 1)
-        conv1_output = self.pool1(torch.relu(self.conv1(embedded)))
-        conv1_output = self.dropout1(conv1_output)
-        conv2_output = self.pool2(torch.relu(self.conv2(conv1_output)))
-        conv2_output = self.dropout2(conv2_output)
-        flattened = self.flatten(conv2_output)
-        fc1_output = torch.relu(self.fc1(flattened))
-        logits = self.fc2(fc1_output)
-        return logits
-
-class LSTMModel(nn.Module):
-    def __init__(self, embedding_matrix, hidden_size=64, num_classes=3):
-        super(LSTMModel, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(torch.tensor(embedding_matrix, dtype=torch.float))
-        self.embedding.requires_grad = False  # To freeze the embedding during training
-        self.lstm1 = nn.LSTM(input_size=100, hidden_size=hidden_size, batch_first=True, bidirectional=False)
-        self.dropout1 = nn.Dropout(0.5)
-        self.lstm2 = nn.LSTM(input_size=hidden_size, hidden_size=hidden_size*2, batch_first=True, bidirectional=False)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(hidden_size*2, 50)
-        self.dropout3 = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(50, num_classes)
-
-    def forward(self, x):
-        x = self.embedding(x)
-        x, _ = self.lstm1(x)
-        x = self.dropout1(x)
-        x, _ = self.lstm2(x)
-        x = self.dropout2(x)
-        x = torch.relu(self.fc1(x[:, -1, :]))
-        x = self.dropout3(x)
-        x = self.fc2(x)
-        return x
 
 # mise en place
-savedModels={1: "savedModels/CNN_Model_Torch.pth", 2: "savedModels/LSTM_Model_Torch.pth", 'goemotion': "savedModels/TransformerSentiment"}
+savedModels={'goemotion': "savedModels/TransformerSentiment"}
 MAX_EMOTIONS_LENGTH=4
 
 @app.route("/api/callmodel", methods=['POST'])
@@ -83,43 +28,18 @@ def model_runner():
         return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
     jobID = data.get('jobID')
     modelID = data.get('model_id')
-<<<<<<< HEAD
-    if modelID not in [1, 2]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2'}), 400
-    vector_data = []
-    try:
-        CONNECTION_STRING = os.getenv('MONGO_URI')
-        client= MongoClient(CONNECTION_STRING)
-        db=client.get_database('Vector_Data')
-        collection=db.preprocessed_data
-        testCorpus = GetPreprocText(jobID)
-        alldocuments = collection.find({str(jobID): {'$exists': True}})
-        for document in alldocuments:
-            vector_data.append(document[str(jobID)])
-        vector_array = np.array(vector_data)
-        if len(vector_data) == 0:
-            raise Exception('No vector data found in MongoDB')
-    except Exception as e:
-        print('Connection Failed')
-        print(str(e))
-        return
-    prediction_summary = predictions(vector_array, modelID)
-    if SQLConnector(prediction_summary, jobID):
-=======
-    if modelID not in [1, 2, 3]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
+    if modelID not in [1, 2, 3, 4, 5, 6]:
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3,4,5,6'}), 400
     
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
-    prediction_summary = {label: 0 for label in class_labels}
-    testCorpus = get_preprocessed_text_from_db(jobID)
+    #prediction_summary = {label: 0 for label in class_labels}
     topicCorpus = get_topic_text_from_db(jobID)
-
-    if modelID == 1 or modelID == 2:
-        vector_array = get_vector_data_from_db(jobID)
-        prediction_summary = get_predictions_from_cnn_and_lstm(vector_array, prediction_summary, class_labels, modelID)
-    elif modelID == 3:
-        prediction_summary = get_predictions_from_xgb(testCorpus, prediction_summary, class_labels)
-
+    if topicCorpus is None or len(topicCorpus)==0:    
+        return jsonify({'status': 'error', 'message': 'topicCorpus not found in DB'}), 400
+    testCorpus=get_preprocessed_text_from_db(jobID)
+    if testCorpus is None or len(testCorpus)==0:    
+        return jsonify({'status': 'error', 'message': 'test_corpus not found in DB'}), 400
+    prediction_summary = get_predictions_from_deployment(modelID, jobID)
     prediction_summary = get_predictions_from_go_emotions(prediction_summary, testCorpus, jobID)
     sentiment_dict = {key: value for key, value in prediction_summary.items() if key not in ['emotions']}
     emotions_json = prediction_summary.get('emotions', {})
@@ -135,6 +55,19 @@ def model_runner():
     else:
         return jsonify({'status': 'error', 'message': 'Failed to execute model_runner, Persistence Error'}), 500
 
+def get_preprocessed_text_from_db(jobID):
+    connection = mysql.connector.connect(
+        user=os.getenv('MYSQL_ROOT_USERNAME'),
+        password=os.getenv('MYSQL_ROOT_PASSWORD'),
+        host=os.getenv('MYSQL_HOST'),
+        database=os.getenv('MYSQL_DB')
+    )
+
+    cursor = connection.cursor()
+    cursor.execute('SELECT `sentence` FROM `emotions_texts` WHERE `job_id` = %s;', (jobID,))
+    results = cursor.fetchall()
+    sentences = [row[0] for row in results]
+    return sentences
 
 def add_predictions_to_db(prediction_summary, jobID, modelID):
     models=["CNN", "LSTM", "XGBOOST"]
@@ -159,19 +92,6 @@ def add_predictions_to_db(prediction_summary, jobID, modelID):
 <<<<<<< HEAD
 =======
 
-def get_preprocessed_text_from_db(jobID):
-    connection = mysql.connector.connect(
-        user=os.getenv('MYSQL_ROOT_USERNAME'),
-        password=os.getenv('MYSQL_ROOT_PASSWORD'),
-        host=os.getenv('MYSQL_HOST'),
-        database=os.getenv('MYSQL_DB')
-    )
-
-    cursor = connection.cursor()
-    cursor.execute('SELECT `sentence` FROM `emotions_texts` WHERE `job_id` = %s;', (jobID,))
-    results = cursor.fetchall()
-    sentences = [row[0] for row in results]
-    return sentences
 
 def get_topic_text_from_db(jobID):
     topicCorpus = []
@@ -263,92 +183,43 @@ def add_topic_results_to_db(topicsDetected, jobID):
 
 def topic_detection(topicCorpus):
     topics_list = []
-    topic_model = BERTopic.load("savedModels/BERTOPIC_Model")
-    topics, probs = topic_model.transform(topicCorpus)
-    data=topic_model.get_topics()
-    for topic_id, topic_words in data.items():
-        if 0 <= topic_id <= 4:
-            top_words_list = []
-            for word, probability in topic_words[:5]:
-                word_data = {'value': word, 'count': round(probability * 100, 2)}
-                top_words_list.append(word_data)
-            topic_data = {'id': topic_id, 'name': f'Topic {topic_id + 1}', 'words': top_words_list}
-            topics_list.append(topic_data)
+    model_base_url = 'http://topic_modelling:8005/predictTopic'
+    try: 
+        request_body={
+            "topic_corpus":topicCorpus
+        }
+        response = requests.post(model_base_url, json=request_body)
+        response_data = response.json()
+        if response.status_code == 200:
+            return response_data
+        else:
+            raise ValueError(f"Request failed for topic Modelling {response.status_code}")
+    except exceptions as e:
+        logging.error(f"Error: {str(e)}")
+    
     return topics_list
 
-def get_predictions_from_cnn_and_lstm(padded_sequences, prediction_summary, class_labels, model_id):
-    torch.manual_seed(42)
-    np.random.seed(42)
-
-    with open('embedding_matrix.pickle', 'rb') as handle:
-        embedding_matrix = pickle.load(handle)
-    input_tensor = torch.tensor(padded_sequences, dtype=torch.long)
-    if model_id==1:
-        loaded_model = CNNModel(embedding_matrix, num_classes=3)
-    if model_id==2:
-        loaded_model = LSTMModel(embedding_matrix, num_classes=3)
-    loaded_model.load_state_dict(torch.load(savedModels[int(model_id)]))
-    loaded_model.eval()
-
-    with torch.no_grad():
-        val_outputs = loaded_model(input_tensor)
-        val_predictions = torch.argmax(val_outputs, dim=1).tolist()
-
-    predicted_classes = np.array(val_predictions)
-    
->>>>>>> main
-    for predicted_class in predicted_classes:
-        predicted_label = class_labels[predicted_class]
-        prediction_summary[predicted_label] += 1
-    return prediction_summary
-
-def get_predictions_from_xgb(testCorpus, prediction_summary, class_labels):
-    with open('savedModels/xgb_tfidf.pkl', 'rb') as handle:
-        vectorizer = pickle.load(handle)
-    tfidf_features = vectorizer.transform(testCorpus)
-    with open('savedModels/xgb_model.pkl', 'rb') as handle:
-        xgb_model = pickle.load(handle)
-    predictions = xgb_model.predict(tfidf_features)
-    # values, counts = np.unique(predictions, return_counts=True)
-    
-    # for val, cnt in np.nditer([values,counts], flags=['buffered'], op_flags=['readonly','copy'], op_dtypes=['int64','int64']):
-    #     label = class_labels[val]
-    #     prediction_summary[label] = cnt
-    count_zeros = 0
-    count_ones = 0
-    count_twos = 0
-    for pred in predictions.flat:
-        if pred == 0:
-            count_zeros = count_zeros + 1
-        elif pred == 1:
-            count_ones = count_ones + 1
-        elif pred == 2:
-            count_twos = count_twos + 1
-    
-    prediction_summary[class_labels[0]] = count_zeros
-    prediction_summary[class_labels[1]] = count_ones
-    prediction_summary[class_labels[2]] = count_twos
-
-    return prediction_summary
-
-def get_vector_data_from_db(jobID):
+def get_predictions_from_deployment(model_id, job_id):
+    model_base_url = 'http://model_deployment:8004/predict'
     try:
-        CONNECTION_STRING = os.getenv('MONGO_URI')
-        client= MongoClient(CONNECTION_STRING)
-        db=client.get_database('Vector_Data')
-        collection=db.preprocessed_data
-        alldocuments = collection.find({str(jobID): {'$exists': True}})
-        vector_data = []
-        for document in alldocuments:
-            vector_data.append(document[str(jobID)])
-        if len(vector_data) == 0:
-            raise Exception('No vector data found in MongoDB')
-        vector_array = np.array(vector_data)
-        return vector_array       
+        request_body={
+            "model_id":model_id,
+            "job_id": job_id
+        }
+        response = requests.post(model_base_url, json=request_body)
+        response_data = response.json() 
+        if response.status_code == 200:
+            return response_data
+        elif response.status_code == 400:
+            error_message = response_data.get('message', 'Unknown error occurred.')
+            raise ValueError(f"Bad Request - {error_message}")
+        else:
+            raise ValueError(f"Request failed with status code {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        raise ValueError(f"Request error - {str(e)}")
     except Exception as e:
-        print('Connection Failed')
-        print(str(e))
-        return jsonify({'status': 'error', 'message': 'No vector data found in MongoDB'}), 404
+        raise ValueError(f"Unexpected error - {str(e)}")
+
 
 def get_predictions_from_go_emotions(prediction_summary, testCorpus, jobID):
     testCorpus = pd.Series(testCorpus)

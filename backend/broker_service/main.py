@@ -4,13 +4,12 @@ import pymysql
 from app import app
 from config import mysql
 from flask import jsonify
-from flask import flash, request, Response
+from flask import request
 import uuid
 import json
 import requests
 from datetime import datetime
 from producer.main import batch_engine
-import sqlite3
 
 @app.route('/api/comments', methods=['GET','POST'])
 def comments():
@@ -38,8 +37,7 @@ def comments():
         response = requests.post('http://data_service:8001/comments', json={
 =======
         r = requests.post('http://data_service:8001/comments', json={
-        # r = requests.post('http://127.0.0.1:8001/comments', json={
->>>>>>> main
+        #r = requests.post('http://127.0.0.1:8001/comments', json={
             "url": _url,
             "commentcount":_number,
             "jobid": job_id,
@@ -78,12 +76,6 @@ def comments():
         print ("Timeout Error:",errt)
     return jsonify({'status': 'error', 'message': 'core logic not executed!'}), 501
     
-
-<<<<<<< HEAD
-
-@app.route('/api/model/result', methods=['POST'])
-def model_output():
-=======
 @app.route('/api/model/find', methods=['GET'])
 def model_find():
     try:
@@ -104,7 +96,6 @@ def model_find():
     finally:
         cursor.close()
         conn.close()
-
 
 @app.route('/api/model/update', methods=['PUT'])
 def model_update():
@@ -134,20 +125,6 @@ def model_update():
             conn.close()
     return jsonify({'status': 'error', 'message': 'model update failure!'}), 500
 
-
-<<<<<<< HEAD
-@app.route('/api/model/find', methods=['GET'])
-def model_find():
-    try:
-        # store result into database
-        conn = mysql.connect()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
-        sql = "SELECT * FROM model"
-        cursor.execute(sql)
-        conn.commit()
-        modelRows = cursor.fetchall()
-        response = jsonify(modelRows)
-=======
 @app.route('/api/batch', methods=['POST'])
 def batch_runner():
     try:
@@ -209,7 +186,6 @@ def showMessage(error=None):
         showMessage()
         return jsonify(message=str(e), status=500) # added this line
 
-
 @app.route('/api/dashboard', methods=['GET'])
 def dashboard_find():
     try:
@@ -263,7 +239,6 @@ def dashboard_find():
         cursor.close()
         conn.close()
 
-
 @app.route('/api/preprocessing/find', methods=['GET'])
 def preprocessing_find():
     try:
@@ -285,7 +260,6 @@ def preprocessing_find():
         cursor.close()
         conn.close()
 
-
 def goemotion_find(job_id):
     try:
         # store result into database
@@ -301,8 +275,6 @@ def goemotion_find(job_id):
     finally:
         cursor.close()
         conn.close()
->>>>>>> main
-
 
 def get_result(job_id):
     conn = mysql.connect()
@@ -314,10 +286,6 @@ def get_result(job_id):
     print("length of result "+str(len(resultRows)))
     return resultRows
 
-
-<<<<<<< HEAD
-def save_job(job_id, _url, job_time):
-=======
 def save_job(job_id, _url, _model_id, job_time):
 >>>>>>> main
     conn=None
@@ -336,7 +304,6 @@ def save_job(job_id, _url, _model_id, job_time):
             cursor.close()
         if conn:
             conn.close()
-
 
 def job_output_polling(job_id):
     try:
@@ -367,8 +334,6 @@ def showMessage(error=None):
     response = jsonify(message)
     response.status_code = 404
     return response
-
->>>>>>> main
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=8000)

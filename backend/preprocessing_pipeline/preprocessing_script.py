@@ -44,8 +44,8 @@ def runner():
     jobID = data.get('jobID')
     modelID = data.get('model_id')
     pps_id = data.get('pps_id')
-    if modelID not in [1, 2, 3]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
+    if modelID not in [1, 2, 3, 4, 5, 6]:
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3,4,5,6'}), 400
     try:
         comments = get_comments_from_db(jobID)
         if modelID == 1 or modelID == 2:
@@ -58,7 +58,7 @@ def runner():
         add_topicCorpus_to_db(topicCorpus, jobID)
         model_runner_url = 'http://nlp_service:8003/api/callmodel'
         #model_runner_url = 'http://localhost:8003/api/callmodel'
-        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID})
+        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID}, timeout=600)
         if response.status_code == 200:
             return jsonify({'status': 'success', 'message': 'Preprocessing completed and model_runner executed successfully'}), 200
         else:
@@ -199,19 +199,18 @@ def perform_preprocessing(comments,pps_id):
             newText = default_preprocess_text(newText) 
 
             for id in pps_id:
-                match Preprocessing(id):
-                    case Preprocessing.STEMMING:
-                        newText = perform_stemming(newText)
-                    case Preprocessing.LEMMATIZE:
-                        newText = perform_lemmatization(newText)
-                    case Preprocessing.STOPWORD:
-                        newText = perform_stopwords_removal(newText)
-                    case Preprocessing.EXPANDED:
-                        newText = perform_preprocessing_on_expanded_text(newText)
-                    case Preprocessing.EMOJI:
-                        newText = perform_emoji_preprocessing(newText)
-                    case Preprocessing.MISC:
-                        newText = perform_additional_preprocessing(newText)
+                if Preprocessing(id) == Preprocessing.STEMMING:
+                    newText = perform_stemming(newText)
+                elif Preprocessing(id) == Preprocessing.LEMMATIZE:
+                    newText = perform_lemmatization(newText)
+                elif Preprocessing(id) == Preprocessing.STOPWORD:
+                    newText = perform_stopwords_removal(newText)
+                elif Preprocessing(id) == Preprocessing.EXPANDED:
+                    newText = perform_preprocessing_on_expanded_text(newText)
+                elif Preprocessing(id) == Preprocessing.EMOJI:
+                    newText = perform_emoji_preprocessing(newText)
+                elif Preprocessing(id) ==Preprocessing.MISC:
+                    newText = perform_additional_preprocessing(newText)
             testCorpus.append(newText)
     return testCorpus
 
