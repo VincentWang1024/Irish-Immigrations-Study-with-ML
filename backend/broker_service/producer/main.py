@@ -5,6 +5,9 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv
 import os
 import time
+import pymysql
+from datetime import datetime
+from config import mysql
 
 load_dotenv()
 
@@ -65,7 +68,7 @@ def youtube_search(options):
     page_token = None
     while True:
         # to save api quota, add a thread sleep handling
-        time.sleep(10)
+        # time.sleep(10)
 
         # Call the search.list method to retrieve results matching the specified query term.
         search_response = youtube.search().list(
@@ -89,8 +92,12 @@ def youtube_search(options):
                 print(f'enque url:{url}')
                 urls.append(url)
 
+                job_id = str(uuid.uuid1())
+                job_time = datetime.now()
+
+                save_job(job_id, url, '', job_time)
                 # producer generate nlp workflow tasks
-                p.produce('nlp-workflow', value=url,callback=acked)
+                p.produce('nlp-workflow', value=f'[{job_id}, {url}]',callback=acked)
                 p.poll()
             elif search_result['id']['kind'] == 'youtube#channel':
                 channels.append('%s (%s)' % (search_result['snippet']['title'],
@@ -107,6 +114,26 @@ def youtube_search(options):
         if not page_token:
             p.flush()
             break  # Exit the loop when there are no more pages.
+
+
+def save_job(job_id, _url, _model_id, job_time):
+    conn=None
+    cursor=None
+    try:
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        sqlQuery = "INSERT INTO job(id, video_link, model_id, job_time) VALUES(%s, %s, %s, %s)"
+        bindData = (job_id, _url, _model_id, job_time)
+        cursor.execute(sqlQuery, bindData)
+        conn.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 class Options:
     def __init__(self, q, max_results):
