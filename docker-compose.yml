@@ -52,16 +52,5 @@ services:
     networks:
       - immigration_in_Ireland
 
-  topic_todelling: 
-    build: ./Topic_Modelling
-    container_name: topic_modelling  
-    ports:
-      - "8005:8005"
-    env_file:
-      - ".env"
-    networks:
-      - immigration_in_Ireland
-
-
 networks:
   immigration_in_Ireland:

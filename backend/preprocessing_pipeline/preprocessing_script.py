@@ -39,14 +39,13 @@ class Preprocessing(Enum):
 @app.route("/api/preprocess", methods=['POST'])
 def runner():
     data = request.json
-    if 'jobID' not in data or 'model_id' not in data or 'pps_id' not in data or 'median_time' not in data:
-        return jsonify({'status': 'error', 'message': 'jobID and model_id are required fields'}), 400
+    if 'jobID' not in data or 'model_id' not in data or 'pps_id' not in data:
+        return jsonify({'status': 'error', 'message': 'jobID, model_id, and pps_id are required fields'}), 400
     jobID = data.get('jobID')
     modelID = data.get('model_id')
-    median_time = data.get('median_time')
     pps_id = data.get('pps_id')
-    if modelID not in [1, 2, 3, 4, 5, 6]:
-        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3,4,5,6'}), 400
+    if modelID not in [1, 2, 3]:
+        return jsonify({'status': 'error', 'message': 'Valid values for model_id are 1,2,3'}), 400
     try:
         comments = get_comments_from_db(jobID)
         if modelID == 1 or modelID == 2:
@@ -58,7 +57,8 @@ def runner():
         topicCorpus = perform_preprocessing_topic_text(comments) 
         add_topicCorpus_to_db(topicCorpus, jobID)
         model_runner_url = 'http://nlp_service:8003/api/callmodel'
-        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID, 'median_time': median_time}, timeout=600)
+        #model_runner_url = 'http://localhost:8003/api/callmodel'
+        response = requests.post(model_runner_url, json={'jobID': jobID, 'model_id': modelID}, timeout=600)
         if response.status_code == 200:
             return jsonify({'status': 'success', 'message': 'Preprocessing completed and model_runner executed successfully'}), 200
         else:

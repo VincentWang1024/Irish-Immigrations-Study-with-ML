@@ -178,4 +178,3 @@ venv/
 .idea/misc.xml
 frontend/yarn.lock
 .idea/Irish-Immigrations-Study-with-ML.iml
-.vscode/launch.json

@@ -1,7 +1,3 @@
 torch==2.0.1
 numpy==1.23.3
 flask
-xgboost
-pymongo==4.4.0
-python-dotenv
-mysql-connector-python
