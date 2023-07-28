@@ -6,11 +6,18 @@ import os
 load_dotenv()
 
 # Load environment variables
-bootstrap_servers = os.getenv("BOOTSTRAP_SERVERS")
-security_protocol = os.getenv("SECURITY_PROTOCOL")
-sasl_mechanisms = os.getenv("SASL_MECHANISMS")
-sasl_username = os.getenv("SASL_USERNAME")
-sasl_password = os.getenv("SASL_PASSWORD")
+# bootstrap_servers = os.getenv("BOOTSTRAP_SERVERS")
+# security_protocol = os.getenv("SECURITY_PROTOCOL")
+# sasl_mechanisms = os.getenv("SASL_MECHANISMS")
+# sasl_username = os.getenv("SASL_USERNAME")
+# sasl_password = os.getenv("SASL_PASSWORD")
+
+bootstrap_servers='pkc-z9doz.eu-west-1.aws.confluent.cloud:9092'
+security_protocol='SASL_SSL'
+sasl_mechanisms='PLAIN'
+sasl_username='PR6L4XJHNR3TI33I'
+sasl_password='xs38vTm+VwsTO9/VZwmHh4DQgyORiVx5K7LlkGDqLy02llk4mrWpvqdRF5+BZOJc'
+SESSION_TIMEOUT_MS=45000
 
 # Create a Kafka producer configuration
 conf = {
@@ -26,6 +33,7 @@ props = conf
 props["group.id"] = "python-group-1"
 props["auto.offset.reset"] = "earliest"
 
+print(props)
 c = Consumer(props)
 
 c.subscribe(['nlp-workflow'])

@@ -55,11 +55,12 @@ def process_comments():
 
         load_dotenv()
         video_id = get_video_id_from_url(url)
-        comments = get_comments(video_id, comment_count)
+        comments = get_comments(video_id, comment_count)        
         save_comments_to_database(job_id, comments)
         preprocess_url = 'http://preprocess_service:8002/api/preprocess'
         #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
-        response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id}, timeout=600)
+        median_time = get_median_time_for_comments(comments)
+        response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
         if response.status_code == 200:
             return Response("Comments OK", status=200)
         else:
@@ -100,8 +101,8 @@ def save_comments_to_database(job_id, comments):
     for comment in comments:
         data_comment = (job_id, comment[0], comment[1], job_time)
         cursor.execute(add_comment, data_comment)
-        cnx.commit()  
-
+    
+    cnx.commit()  
     cursor.close()
     cnx.close()
 
@@ -144,6 +145,28 @@ def get_comments(video_id, comment_count, comments = [], pgtoken=""):
         return get_comments(video_id, comment_count, comments, response["nextPageToken"])
     else:
         return comments
-    
+
+def get_median_time_for_comments(comments):
+    comment_datetimes = []
+    for comment in comments:
+        comment_datetimes.append(comment[1])
+
+    comment_timestamps = [datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ") for time in comment_datetimes]
+    comment_timestamps = sorted(comment_timestamps)
+    num_timestamps = len(comment_timestamps)
+    if num_timestamps % 2 == 0:
+        date1 = comment_timestamps[num_timestamps // 2 - 1]
+        date2 = comment_timestamps[num_timestamps // 2]
+
+        if date1 < date2:
+            time_diff = date2 - date1
+            median_timestamp = date1 + (time_diff // 2)
+        else:
+            time_diff = date1 - date2
+            median_timestamp = date2 + (time_diff // 2)
+    else:
+        median_timestamp = comment_timestamps[num_timestamps // 2]
+    return median_timestamp.__str__()
+
 if __name__ == '__main__':
     app.run(debug = True, host='0.0.0.0', port=8001)

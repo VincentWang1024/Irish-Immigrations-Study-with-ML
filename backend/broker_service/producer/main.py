@@ -5,6 +5,9 @@ from googleapiclient.discovery import build
 from dotenv import load_dotenv
 import os
 import time
+import pymysql
+from config import mysql
+from datetime import datetime
 
 load_dotenv()
 
@@ -86,11 +89,15 @@ def youtube_search(options):
                 videos.append('%s (%s)' % (search_result['snippet']['title'],
                                            search_result['id']['videoId']))
                 url='https://www.youtube.com/watch?v=%s' % search_result['id']['videoId']
+
+                job_id = str(uuid.uuid1())
+                job_time = datetime.now()
+                save_job(job_id, url, '', job_time)
                 print(f'enque url:{url}')
                 urls.append(url)
 
                 # producer generate nlp workflow tasks
-                p.produce('nlp-workflow', value=url,callback=acked)
+                p.produce('nlp-workflow', value= f'[{job_id}, {url}]', callback=acked)
                 p.poll()
             elif search_result['id']['kind'] == 'youtube#channel':
                 channels.append('%s (%s)' % (search_result['snippet']['title'],
@@ -117,4 +124,21 @@ def batch_engine(topic):
     options = Options(topic, 50)
     youtube_search(options)
 
-# batch_engine('immigrant ireland')
+
+def save_job(job_id, _url, _model_id, job_time):
+    conn=None
+    cursor=None
+    try:
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        sqlQuery = "INSERT INTO job(id, video_link, model_id, job_time) VALUES(%s, %s, %s, %s)"
+        bindData = (job_id, _url, _model_id, job_time)
+        cursor.execute(sqlQuery, bindData)
+        conn.commit()
+    except Exception as e:
+        print(e)
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
