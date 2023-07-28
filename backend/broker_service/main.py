@@ -13,10 +13,7 @@ from producer.main import batch_engine
 
 @app.route('/api/comments', methods=['GET','POST'])
 def comments():
-<<<<<<< HEAD
-=======
     print(request.json)
->>>>>>> main
     try:
         _json = request.json
         # if _number and _url and _model_id and request.method == 'POST':
@@ -33,9 +30,6 @@ def comments():
         job_time = datetime.now()
 
         print("...........request data service......................")
-<<<<<<< HEAD
-        response = requests.post('http://data_service:8001/comments', json={
-=======
         r = requests.post('http://data_service:8001/comments', json={
         #r = requests.post('http://127.0.0.1:8001/comments', json={
             "url": _url,
@@ -64,7 +58,6 @@ def comments():
             print(respone)
             return respone
         elif r.status_code == 500:
->>>>>>> main
             return jsonify({'status': 'error', 'message': 'pipeline has something wrong!'}), 500
     except requests.exceptions.RequestException as err:
         print ("OOps: Something Else Happened",err)
