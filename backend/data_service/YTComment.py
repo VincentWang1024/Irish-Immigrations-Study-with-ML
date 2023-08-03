@@ -58,16 +58,6 @@ api_keys = {
     'key3': client_secret3
 }
 
-client_secret1 = os.getenv("CLIENT_SECRET1")
-client_secret2 = os.getenv("CLIENT_SECRET2")
-client_secret3 = os.getenv("CLIENT_SECRET3")
-
-api_keys = {
-    'key1': client_secret1,
-    'key2': client_secret2,
-    'key3': client_secret3
-}
-
 @app.route("/comments", methods=['POST'])
 def process_comments():
     try:
