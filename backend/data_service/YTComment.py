@@ -47,6 +47,16 @@ config = {
     'sasl.password': sasl_password
 }
 
+client_secret1 = os.getenv("CLIENT_SECRET1")
+client_secret2 = os.getenv("CLIENT_SECRET2")
+client_secret3 = os.getenv("CLIENT_SECRET3")
+
+api_keys = {
+    'key1': client_secret1,
+    'key2': client_secret2,
+    'key3': client_secret3
+}
+
 @app.route("/comments", methods=['POST'])
 def process_comments():
     try:
@@ -73,8 +83,8 @@ def process_comments():
         video_id = get_video_id_from_url(url)
         comments = get_comments(video_id, comment_count)        
         save_comments_to_database(job_id, comments)
-        #preprocess_url = 'http://preprocess_service:8002/api/preprocess'
-        preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
+        preprocess_url = 'http://preprocess_service:8002/api/preprocess'
+        #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
         median_time = get_median_time_for_comments(comments)
         response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
         if response.status_code == 200:
@@ -187,7 +197,6 @@ def get_median_time_for_comments(comments):
 def set_consumer_configs():
     config['group.id'] = 'comments_group'
     config['auto.offset.reset'] = 'earliest'
-    config['enable.auto.commit'] = False
 
 def assignment_callback(consumer, partitions):
     for p in partitions:
@@ -217,20 +226,24 @@ def init_consumer():
                     comments = fetch_all_comments(video_id)
                     save_comments_to_database(job_id, comments)
                     median_time = get_median_time_for_comments(comments)
-                    # Hard coding XGBoost model as it is the best performing model
+                    # Hard coding XGBoost model as it is the best performing model for our dataset
                     model_id = 3
                     pps_id = [1,2,3]
                     #preprocess_url = 'http://preprocess_service:8002/api/preprocess'
                     preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
                     requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
                     print(f'Processed job id: {job_id} and url: {url}')                   
-    except Exception as e:
+    except KafkaException as e:
         print(e)
+    except HttpError as err:
+        print("An HTTP error %d occurred:\n%s" % (err.resp.status, err.content))
+    #     if err.status_code == 403:
+    #         # replace the client key here..
     finally:
         consumer.close()
 
 def fetch_all_comments(video_id, comments = [], pgtoken=""):
-    api_key = os.getenv('CLIENT_SECRET')
+    api_key = os.getenv('CLIENT_SECRET1')
     youtube = build('youtube', 'v3', developerKey=api_key)
     response = youtube.commentThreads().list(
         part = "snippet,replies",
