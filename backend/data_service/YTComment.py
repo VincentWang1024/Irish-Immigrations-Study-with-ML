@@ -20,6 +20,7 @@ import os
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 from datetime import datetime
+from threading import Thread
 
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
@@ -29,9 +30,24 @@ import validators
 from validators.utils import ValidationFailure
 from flask import Flask, request, Response, jsonify
 import requests
+from confluent_kafka import Consumer, KafkaException
 app = Flask(__name__)
 
-@app.route("/comments", methods=['GET','POST'])
+bootstrap_servers = os.getenv("BOOTSTRAP_SERVERS")
+security_protocol = os.getenv("SECURITY_PROTOCOL")
+sasl_mechanisms = os.getenv("SASL_MECHANISMS")
+sasl_username = os.getenv("SASL_USERNAME")
+sasl_password = os.getenv("SASL_PASSWORD")
+
+config = {
+    'bootstrap.servers': bootstrap_servers,
+    'security.protocol': security_protocol,
+    'sasl.mechanisms': sasl_mechanisms,
+    'sasl.username': sasl_username,
+    'sasl.password': sasl_password
+}
+
+@app.route("/comments", methods=['POST'])
 def process_comments():
     try:
         data = request.json
@@ -57,8 +73,8 @@ def process_comments():
         video_id = get_video_id_from_url(url)
         comments = get_comments(video_id, comment_count)        
         save_comments_to_database(job_id, comments)
-        preprocess_url = 'http://preprocess_service:8002/api/preprocess'
-        #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
+        #preprocess_url = 'http://preprocess_service:8002/api/preprocess'
+        preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
         median_time = get_median_time_for_comments(comments)
         response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
         if response.status_code == 200:
@@ -168,5 +184,85 @@ def get_median_time_for_comments(comments):
         median_timestamp = comment_timestamps[num_timestamps // 2]
     return median_timestamp.__str__()
 
+def set_consumer_configs():
+    config['group.id'] = 'comments_group'
+    config['auto.offset.reset'] = 'earliest'
+    config['enable.auto.commit'] = False
+
+def assignment_callback(consumer, partitions):
+    for p in partitions:
+        print(f'Assigned to {p.topic}, partition {p.partition}')
+
+def init_consumer():
+    set_consumer_configs()
+    consumer = Consumer(config)
+    consumer.subscribe(['nlp-workflow'], on_assign=assignment_callback)
+    try:
+        while True:
+            event = consumer.poll(1.0)
+            if event is None:
+                continue
+            elif event.error():
+                raise KafkaException(event.error())
+            else:
+                msg = event.value().decode('utf8')
+                if msg:
+                    job_id, url = msg.split(',')
+                    # Removing '['
+                    job_id = job_id[1:]
+                    # Removing extra space and ']'
+                    url = url[1:-1]
+                    print(f'Starting job id: {job_id} and url: {url}')
+                    video_id = get_video_id_from_url(url)
+                    comments = fetch_all_comments(video_id)
+                    save_comments_to_database(job_id, comments)
+                    median_time = get_median_time_for_comments(comments)
+                    # Hard coding XGBoost model as it is the best performing model
+                    model_id = 3
+                    pps_id = [1,2,3]
+                    #preprocess_url = 'http://preprocess_service:8002/api/preprocess'
+                    preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
+                    requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
+                    print(f'Processed job id: {job_id} and url: {url}')                   
+    except Exception as e:
+        print(e)
+    finally:
+        consumer.close()
+
+def fetch_all_comments(video_id, comments = [], pgtoken=""):
+    api_key = os.getenv('CLIENT_SECRET')
+    youtube = build('youtube', 'v3', developerKey=api_key)
+    response = youtube.commentThreads().list(
+        part = "snippet,replies",
+        videoId = video_id,
+        pageToken = pgtoken,
+        textFormat = "plainText"
+        ).execute()
+
+    for item in response["items"]:
+        parent_id = item["id"]
+        topLevelComment = item["snippet"]["topLevelComment"]["snippet"]["textOriginal"]
+        commentDate = item["snippet"]["topLevelComment"]["snippet"]["publishedAt"]
+        commentInfo = (topLevelComment, commentDate)
+        comments.append(commentInfo)
+        
+        replies = youtube.comments().list(
+            part="snippet",
+            parentId = parent_id,
+            textFormat="plainText"
+            ).execute()
+            
+        for reply in replies["items"]:
+            replyComment = reply["snippet"]["textOriginal"]
+            replyDate = reply["snippet"]["publishedAt"]
+            replyInfo = (replyComment, replyDate)
+            comments.append(replyInfo)                    
+    if "nextPageToken" in response:
+        return fetch_all_comments(video_id, comments, response["nextPageToken"])
+    else:
+        return comments
+
 if __name__ == '__main__':
+    thrd = Thread(target=init_consumer)
+    thrd.start()
     app.run(debug = True, host='0.0.0.0', port=8001)
