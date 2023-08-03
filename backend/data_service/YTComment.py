@@ -44,7 +44,8 @@ config = {
     'security.protocol': security_protocol,
     'sasl.mechanisms': sasl_mechanisms,
     'sasl.username': sasl_username,
-    'sasl.password': sasl_password
+    'sasl.password': sasl_password,
+    'max.poll.interval.ms': 600000
 }
 
 client_secret1 = os.getenv("CLIENT_SECRET1")
