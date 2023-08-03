@@ -58,6 +58,16 @@ api_keys = {
     'key3': client_secret3
 }
 
+client_secret1 = os.getenv("CLIENT_SECRET1")
+client_secret2 = os.getenv("CLIENT_SECRET2")
+client_secret3 = os.getenv("CLIENT_SECRET3")
+
+api_keys = {
+    'key1': client_secret1,
+    'key2': client_secret2,
+    'key3': client_secret3
+}
+
 @app.route("/comments", methods=['POST'])
 def process_comments():
     try:
@@ -84,8 +94,8 @@ def process_comments():
         video_id = get_video_id_from_url(url)
         comments = get_comments(video_id, comment_count)        
         save_comments_to_database(job_id, comments)
-        #preprocess_url = 'http://preprocess_service:8002/api/preprocess'
-        preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
+        preprocess_url = 'http://preprocess_service:8002/api/preprocess'
+        #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
         median_time = get_median_time_for_comments(comments)
         response = requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
         if response.status_code == 200:
