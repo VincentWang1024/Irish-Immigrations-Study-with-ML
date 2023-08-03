@@ -229,8 +229,8 @@ def init_consumer():
                     # Hard coding XGBoost model as it is the best performing model for our dataset
                     model_id = 3
                     pps_id = [1,2,3]
-                    #preprocess_url = 'http://preprocess_service:8002/api/preprocess'
-                    preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
+                    preprocess_url = 'http://preprocess_service:8002/api/preprocess'
+                    #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
                     requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
                     print(f'Processed job id: {job_id} and url: {url}')                   
     except KafkaException as e:
