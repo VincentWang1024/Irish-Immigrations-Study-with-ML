@@ -207,8 +207,8 @@ def init_consumer():
     set_consumer_configs()
     consumer = Consumer(config)
     consumer.subscribe(['nlp-workflow'], on_assign=assignment_callback)
-    try:
-        while True:
+    while True:
+        try:
             event = consumer.poll(1.0)
             if event is None:
                 continue
@@ -234,14 +234,27 @@ def init_consumer():
                     #preprocess_url = 'http://127.0.0.1:8002/api/preprocess'
                     requests.post(preprocess_url, json={'jobID': job_id, 'model_id': model_id, 'pps_id': pps_id, 'median_time': median_time}, timeout=600)
                     print(f'Processed job id: {job_id} and url: {url}')                   
-    except KafkaException as e:
-        print(e)
-    except HttpError as err:
-        print("An HTTP error %d occurred:\n%s" % (err.resp.status, err.content))
-    #     if err.status_code == 403:
-    #         # replace the client key here..
-    finally:
-        consumer.close()
+        except KafkaException as e:
+            if e.args[0].retriable():
+                continue
+            else:
+                print(e)
+                raise
+        except HttpError as err:
+            reason = err.error_details[0]['reason']
+            if err.status_code == 403:
+                if reason == 'commentsDisabled':
+                    print("Comments are disabled.....")
+                    continue
+                elif reason == 'quotaExceeded':
+                    print("Kindly reboot the service with a new API key.....")
+                else:
+                    print("An HTTP error %d occurred:\n%s" % (err.resp.status, err.content))
+                    raise
+            else:
+                print("An HTTP error %d occurred:\n%s" % (err.resp.status, err.content))
+                raise
+    consumer.close()
 
 def fetch_all_comments(video_id, comments = [], pgtoken=""):
     api_key = os.getenv('CLIENT_SECRET1')
