@@ -4,10 +4,18 @@ import { Helmet } from 'react-helmet-async';
 import { TextField, Button, Typography, Container, Box, Grid, Chip } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import { deepOrange, deepPurple, green, blue, red, yellow, teal } from "@mui/material/colors";
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
 
 export default function BatchTask() {
   
   const [tag, setTag] = useState(""); 
+  const [openDialog, setOpenDialog] = useState(false);
 
   const colorMap = {
     irish: deepOrange[500],
@@ -20,6 +28,7 @@ export default function BatchTask() {
   };
 
   const handleSubmit = async (e) => {
+    e.preventDefault(); 
     setTag(e.target.value)
     try {
       console.log("Sending keyword:", tag);
@@ -31,21 +40,26 @@ export default function BatchTask() {
     } catch (error) {
       console.error("Error sending data:", error);
     }
+    setOpenDialog(true);
   };
+  
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+}
 
-  return (
-    <Container component="main" maxWidth="md">
+return (
+  <Container component="main" maxWidth="md">
       <Helmet>
-        <title> About our system | Minimal UI </title>
+          <title> About our system | Minimal UI </title>
       </Helmet>
       <Typography variant="h4" sx={{ mb: 5 }}>
-      Batch Configuration
+          Batch Configuration
       </Typography>
       <Box display="flex" flexDirection="column" alignItems="center" marginTop={4}>
-        
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={9}>
-            {/* <Autocomplete
+          
+          <Grid container spacing={2} alignItems="center">
+              <Grid item xs={9}>
+                {/* <Autocomplete
               id="tags-input"
               options={Object.keys(colorMap)}
               freeSolo
@@ -80,24 +94,61 @@ export default function BatchTask() {
                 />
               )}
             /> */}
-          <TextField id="outlined-basic" label="Add Keyword" variant="outlined" 
-          style={{ width: '100%' }}
-           onChange={(event) => {setTag(event.target.value)}
-          }/>
+                  <TextField 
+                      id="outlined-basic" 
+                      label="Add Keyword" 
+                      variant="outlined" 
+                      style={{ width: '100%' }}
+                      value={tag}
+                      onChange={(event) => {setTag(event.target.value)}}
+                  />
+              </Grid>
+              <Grid item xs={3}>
+                  <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      onClick={handleSubmit}
+                  >
+                      Submit
+                  </Button>
+              </Grid>
           </Grid>
-          <Grid item xs={3}>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              onClick={handleSubmit}
-              
-            >
-              Submit
-            </Button>
-          </Grid>
-        </Grid>
       </Box>
-    </Container>
-  );
+      <Dialog
+    open={openDialog}
+    onClose={handleCloseDialog}
+    PaperProps={{
+        style: {
+            overflow: 'hidden', 
+            borderRadius: '20px'
+        },
+    }}
+>
+    <DialogTitle>
+        {"Keyword Sent"}
+        <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseDialog}
+            aria-label="close"
+            sx={{ position: 'absolute', right: '8px', top: '8px' }}
+        >
+            <CloseIcon />
+        </IconButton>
+    </DialogTitle>
+    <DialogContent>
+        <DialogContentText>
+            The key words have been sent to the backend, which will extract all relevant YouTube video URLs for analysis.
+        </DialogContentText>
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={handleCloseDialog} color="primary">
+            Dismiss
+        </Button>
+    </DialogActions>
+</Dialog>
+  </Container>
+);
+
 }
