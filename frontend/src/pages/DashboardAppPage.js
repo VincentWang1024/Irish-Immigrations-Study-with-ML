@@ -274,6 +274,13 @@ export default function DashboardAppPage(props) {
           </Grid> */}
         </Grid>
       </Container>
+      <Typography variant="body1" color="textSecondary" sx={{ mt: 1, mb: 5 }}>
+                NLP Engine also calls a BERT Transformer trained on the GoEmotions dataset--a human-annotated dataset of 58k reddit comments in English. 
+                This transformer is trained to use ekman mapping to map the 27 different emotions in GoEmotions dataset into 5 broad categories. 
+                This insight is conveyed to users via a pie chart.
+                It's worth noting that the differentiation in sentiment categories between the GoEmotions dataset and the sentiment analysis models (CNN, LSTM, XGBoost) can be attributed to variations in training data. 
+                Reddit's less stringent moderation, compared to YouTube, may result in more polarized comments, potentially leading to divergent definitions of terms like "Hateful."
+            </Typography>
     </>
   );
 }
