@@ -29,8 +29,9 @@ def comments():
         job_time = datetime.now()
 
         print("...........request data service......................")
+        # breakpoint()
         r = requests.post('http://data_service:8001/comments', json={
-        #r = requests.post('http://127.0.0.1:8001/comments', json={
+        # r = requests.post('http://127.0.0.1:8001/comments', json={
             "url": _url,
             "commentcount":_number,
             "jobid": job_id,
@@ -141,7 +142,7 @@ def dashboard_find():
             ["row1_1", "SELECT count(*) as numOfVideos FROM job"],
             ["row1_2", "SELECT count(*) as numOfcomments FROM usercomments"],
             ["row1_34", "SELECT * FROM dashboardRow1"],
-            ["row2_1", "SELECT * FROM dashboardBar"],
+            ["row2_1", "SELECT label as name, sum(ratio) as data, median_time as categories FROM job_output GROUP BY `name`, DATE(median_time) HAVING median_time IS NOT NULL ORDER BY categories"],
             ["row2_2", "SELECT * FROM dashboardPie"],
             ["row3_1", "SELECT * FROM goemotion_result_table"],
             ["row3_2", "SELECT topic_info FROM topics_result_table order by id desc limit 5"]

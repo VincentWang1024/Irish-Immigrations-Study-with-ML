@@ -36,7 +36,7 @@ import {ProductCartWidget, ProductFilterSidebar, ProductList, ProductSort} from 
 import PRODUCTS from "../_mock/products";
 
 export default function CommentPage() {
-    const [url, setUrl] = useState('');
+    const [url, setUrl] = useState(null);
     const [numComments, setNumComments] = useState('');
     const [modelID, setModelID] = useState('');
     const [submitted, setSubmitted] = useState(false);
@@ -129,13 +129,13 @@ export default function CommentPage() {
     };
 
     const handleSubmit = (e) => {
-      e.preventDefault();
-      console.log(apikey)
-      setIsLoading(true)
-      // setUrlChange(!urlChange);
-      // console.log('Selected preprocessing ID:', preprocessList.id)
-      setSubmitted(true);
-      setIsLoading(false)
+          e.preventDefault();
+          console.log(apikey)
+          setIsLoading(true)
+          // setUrlChange(!urlChange);
+          // console.log('Selected preprocessing ID:', preprocessList.id)
+          setSubmitted(true);
+          setIsLoading(false)
     };
 
   return (
@@ -223,17 +223,9 @@ export default function CommentPage() {
             Submit
           </Button>
         </form>
-        {isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <CircularProgress />
-          </div>
-        ) : (
+        {(
           submitted && (
         <>
-          {/* <Typography variant="h5" sx={{ mt: 3, mb: 2 }}>
-            Video Title: {title}
-          </Typography>
-          <img src={thumbnail} alt={title} style={{ width: '300px' }} /> */}
             <br/>
             <br/>
             <MyBarChart url={url} number={numComments} model_id={modelID} preprocessIDs={selectedPreprocessIDS}/>

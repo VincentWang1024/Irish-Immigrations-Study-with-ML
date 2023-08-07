@@ -4,3 +4,4 @@ mysql-connector-python
 validators
 requests
 flask
+confluent_kafka

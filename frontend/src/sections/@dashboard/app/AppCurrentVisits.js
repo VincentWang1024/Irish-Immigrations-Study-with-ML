@@ -3,6 +3,10 @@ import ReactApexChart from 'react-apexcharts';
 // @mui
 import { useTheme, styled } from '@mui/material/styles';
 import { Card, CardHeader } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Zoom from '@mui/material/Zoom';
 // utils
 import { fNumber } from '../../../utils/formatNumber';
 // components
@@ -66,9 +70,18 @@ export default function AppCurrentVisits({ title, subheader, chartColors, chartD
   });
 
   return (
-    <Card {...other}>
+    <Card {...other} sx={{width: '100%', height: '53vh'}}>
       <CardHeader title={title} subheader={subheader} />
-
+      <Tooltip 
+        title="Information about GoEmotion Pie Chart" 
+        placement="top-end" 
+        TransitionComponent={Zoom}
+        sx={{ position: 'absolute', bottom : 0, right : 0 }}
+      >
+        <IconButton color="primary">
+          <HelpOutlineIcon />
+        </IconButton>
+      </Tooltip>
       <StyledChartWrapper dir="ltr">
         <ReactApexChart type="pie" series={chartSeries} options={chartOptions} height={280} />
       </StyledChartWrapper>

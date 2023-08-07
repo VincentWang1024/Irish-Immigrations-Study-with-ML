@@ -1,3 +1,15 @@
 pytest
 pymongo
 python-dotenv
+requests-mock
+tensorflow==2.13.0
+protobuf==3.20.3
+tensorflow-text==2.13.0
+nltk==3.7
+pandas
+langdetect==1.0.9
+numpy==1.23.3
+mysql-connector-python==8.0.33
+langdetect
+flask
+requests

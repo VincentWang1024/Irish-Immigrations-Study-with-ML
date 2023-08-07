@@ -51,7 +51,7 @@ def model_runner():
         logging.error(f"Error: {str(e)}")
         return jsonify({'status': 'error', 'message':'Topic modelling error' }), 500
 
-    if add_predictions_to_db(sentiment_dict, jobID, modelID) and add_emotions_results_to_db(emotions_json, jobID) and add_topic_results_to_db(topicsDetected,jobID):
+    if add_predictions_to_db(sentiment_dict, jobID, modelID, median_time) and add_emotions_results_to_db(emotions_json, jobID, median_time) and add_topic_results_to_db(topicsDetected,jobID, median_time):
         return jsonify({'status': 'success', 'message': 'Model execution completed successfully'}), 200
     else:
         return jsonify({'status': 'error', 'message': 'Failed to execute model_runner, Persistence Error'}), 500
@@ -70,7 +70,7 @@ def get_preprocessed_text_from_db(jobID):
     sentences = [row[0] for row in results]
     return sentences
 
-def add_predictions_to_db(prediction_summary, jobID, modelID):
+def add_predictions_to_db(prediction_summary, jobID, modelID, median_time):
     models=["CNN", "LSTM", "XGBOOST", "CNN+XGBOOST", "LSTM+XGBOOST", "CNN+LSTM"]
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
@@ -81,8 +81,8 @@ def add_predictions_to_db(prediction_summary, jobID, modelID):
     try:
         with connection.cursor() as cursor:
             for label, ratio in prediction_summary.items():
-                job_output_query = "INSERT INTO job_output (label, ratio, job_id, model) VALUES (%s, %s, %s, %s)"
-                cursor.execute(job_output_query, (label, ratio, jobID, models[modelID - 1]))
+                job_output_query = "INSERT INTO job_output (label, ratio, job_id, model, median_time) VALUES (%s, %s, %s, %s, %s)"
+                cursor.execute(job_output_query, (label, ratio, jobID, models[modelID - 1], median_time))
             connection.commit()
             return True
     except Exception as e:
@@ -142,7 +142,7 @@ def generate_json_data(output, jobID, median_time):
     }
     return json_data
 
-def add_emotions_results_to_db(json_data, jobID):
+def add_emotions_results_to_db(json_data, jobID, median_time):
     connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
         password=os.getenv('MYSQL_ROOT_PASSWORD'),
@@ -152,8 +152,8 @@ def add_emotions_results_to_db(json_data, jobID):
     try:
         with connection.cursor() as cursor:
             json_string = json.dumps(json_data)
-            sql = "INSERT INTO goemotion_result_table (job_id, goemotion_result) VALUES (%s, %s)"
-            cursor.execute(sql, (jobID, json_string))
+            sql = "INSERT INTO goemotion_result_table (job_id, goemotion_result, median_time) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (jobID, json_string, median_time))
             connection.commit()
             return True
     except Exception as e:
@@ -162,7 +162,7 @@ def add_emotions_results_to_db(json_data, jobID):
     finally:
         connection.close()
 
-def add_topic_results_to_db(topicsDetected, jobID):
+def add_topic_results_to_db(topicsDetected, jobID, median_time):
     try:
         connection = mysql.connector.connect(
         user=os.getenv('MYSQL_ROOT_USERNAME'),
@@ -171,9 +171,9 @@ def add_topic_results_to_db(topicsDetected, jobID):
         database=os.getenv('MYSQL_DB')
         )
         with connection.cursor() as cursor:
-            sql = "INSERT INTO topics_result_table (job_id, topic_info) VALUES (%s, %s)"
+            sql = "INSERT INTO topics_result_table (job_id, topic_info, median_time) VALUES (%s, %s, %s)"
             for topic in topicsDetected:
-                cursor.execute(sql, (jobID, json.dumps(topic)))
+                cursor.execute(sql, (jobID, json.dumps(topic), median_time))
             connection.commit()
             return True
     except Exception as e:
@@ -201,6 +201,7 @@ def topic_detection(topicCorpus):
     return topics_list
 
 def get_predictions_from_deployment(model_id, job_id):
+    #model_base_url = 'http://127.0.0.1:8004/predict'
     model_base_url = 'http://model_deployment:8004/predict'
     try:
         request_body={

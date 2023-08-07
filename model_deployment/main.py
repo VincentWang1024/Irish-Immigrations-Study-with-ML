@@ -79,8 +79,6 @@ def index():
                 for key, value in prediction_summary.items():
                     if isinstance(value, np.ndarray):
                         prediction_summary[key] = value.tolist()
-                print("Prediction summary:")
-                print(prediction_summary)
                 return jsonify(prediction_summary), 200
             else:
                 logging.error(f"Error: invalid model ID")
@@ -268,6 +266,7 @@ def predict_with_embedding(loaded_model, prediction_summary, model_id, input_ten
 
 def predict_with_xgboost(prediction_summary, testCorpus):
     class_labels = ['Hateful', 'Non-Hateful', 'Neutral']
+    logging.info("In predictXGBOOST")
     with open('xgb_tfidf.pkl', 'rb') as handle:
         vectorizer = pickle.load(handle)
     tfidf_features = vectorizer.transform(testCorpus)
@@ -287,6 +286,7 @@ def predict_with_xgboost(prediction_summary, testCorpus):
     prediction_summary[class_labels[0]] = count_zeros
     prediction_summary[class_labels[1]] = count_ones
     prediction_summary[class_labels[2]] = count_twos
+    logging.info(prediction_summary)
     return prediction_summary
 
 

@@ -6,13 +6,15 @@ import { Spinner } from 'react-bootstrap';
 import PieChart from './PieChart'
 import { Chart } from "react-google-charts";
 import axios from 'axios';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
 
 
 const MyBarChart = ({ url, number, model_id , preprocessIDs}) => {
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState(null);
   const colors = ['#8884d8', '#82ca9d', '#ffc658', '#FF8042', '#0088FE'];
   const fakeData = []
-  const [pieData, setPieData] = useState([]);
+  const [pieData, setPieData] = useState(null);
   const options = {
     title: "GoEmotion",
   };
@@ -57,15 +59,17 @@ const MyBarChart = ({ url, number, model_id , preprocessIDs}) => {
     fetchChartData();
   }, [url, number]);
 
+  console.log(!chartData && !pieData);
+  if(!chartData && !pieData) {
+    return  <div style={{ display: 'flex'}}>
+                <Box sx={{ display: 'flex' }}><CircularProgress /></Box>
+                &nbsp;&nbsp;<h3>  Loading......Please wait a few minutes! </h3>
+            </div>
+  }
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
       <br/>
-      {!chartData ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Spinner animation="border" />
-        </div>
-      ) : (
       <BarChart
         width={700}
         height={500}
@@ -81,14 +85,14 @@ const MyBarChart = ({ url, number, model_id , preprocessIDs}) => {
         <Legend />
         <Bar dataKey="value" fill="#8884d8" />
       </BarChart>
-      )}
+      
       <Chart
-      chartType="PieChart"
-      data={pieData}
-      options={options}
-      width={"120%"}
-      height={"500px"}
-    />
+        chartType="PieChart"
+        data={pieData}
+        options={options}
+        width={"120%"}
+        height={"500px"}
+    /> 
     </div>
   );
 };

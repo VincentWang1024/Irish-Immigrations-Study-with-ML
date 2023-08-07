@@ -4,11 +4,11 @@ on:
   push:
     branches:
     - main
-    - ft_vincent
+    - dev-vincent
   pull_request:
     branches:
     - main 
-    - ft_vincent
+    - dev-vincent
 
 jobs:
   build:
@@ -40,8 +40,12 @@ jobs:
       - name: Build the docker-compose stack
         run: docker-compose -f docker-compose.ci.yml build
 
-
-
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
+      
+      - name: Run Unit Tests 
+        run: |
+          pytest
 
 
 

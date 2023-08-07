@@ -3,6 +3,10 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { Card, CardHeader, Box } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Zoom from '@mui/material/Zoom';
 // import data from "./data";
 
 function BarChartRace({ data, title, subheader, ...other }) {
@@ -19,7 +23,7 @@ function BarChartRace({ data, title, subheader, ...other }) {
   let x = d3.scaleLinear();
 
   // Define a new color scale
-  let color = d3.scaleOrdinal().range(d3.schemeTableau10);
+  let color = d3.scaleOrdinal().range(d3.schemePaired);
 
   const k = 10;
 
@@ -96,7 +100,7 @@ function BarChartRace({ data, title, subheader, ...other }) {
           .scaleBand()
           .domain(dateData.map((d) => d.name))
           .range([0, height])
-          .padding(0.1);
+          .padding(0.050);
 
         const bars = svg.selectAll("rect").data(dateData, (d) => d.name);
 
@@ -191,12 +195,26 @@ function BarChartRace({ data, title, subheader, ...other }) {
   };
 
   return (
-    <Card {...other}>
-      <CardHeader title={title} subheader={subheader} />
-      <Box sx={{ p: 3, pb: 1 }} dir="ltr">
-        <svg ref={ref} style={{ width: '100%', height: '200%' }} />
-      </Box>
-    </Card>
+    <Box sx={{ height: '100vh', width: '100%', position: 'relative'}}>
+      <Card {...other} sx={{width: '100%', height: '50vh'}}>
+        <CardHeader title={title} subheader={subheader} />
+        <Box sx={{ p: 3, pb: 1 }} dir="ltr">
+          <Box sx={{ position: 'relative' }}>
+            <Tooltip
+              title="Information about the bar chart race"
+              placement="top-end"
+              TransitionComponent={Zoom}
+              sx={{ position: 'absolute', top: -75, right: -25 }}
+            >
+              <IconButton color="primary">
+                <HelpOutlineIcon />
+              </IconButton>
+            </Tooltip>
+            <svg ref={ref} width="950" height="350"></svg>
+          </Box>
+        </Box>
+      </Card>
+    </Box>
   );
 };
 

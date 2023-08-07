@@ -11,6 +11,7 @@ import ProductsPage from './pages/ProductsPage';
 import DashboardAppPage from './pages/DashboardAppPage';
 import ModelManagement from './pages/ModelManagement';
 import About from './pages/AboutPage';
+import BatchTask from './pages/BatchTask';
 // ----------------------------------------------------------------------
 
 export default function Router() {
@@ -24,7 +25,7 @@ export default function Router() {
         { path: 'comment', element: <CommentPage /> },
         { path: 'model_management', element: <ModelManagement /> },
         { path: 'about', element: <About /> },
-        // { path: 'blog', element: <BlogPage /> },
+        { path: 'batch', element: <BatchTask /> },
       ],
     },
     {

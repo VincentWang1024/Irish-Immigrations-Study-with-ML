@@ -1,11 +1,12 @@
 /* eslint-disable */
 
-import React, { useEffect,useState } from 'react';
+import React, { useEffect,useState} from 'react';
 import { Helmet } from 'react-helmet-async';
 import { faker } from '@faker-js/faker';
 // @mui
 import { useTheme } from '@mui/material/styles';
 import { Grid, Container, Typography } from '@mui/material';
+import YouTube from '@mui/icons-material/YouTube';
 // components
 import Iconify from '../components/iconify';
 // sections
@@ -23,139 +24,14 @@ import {
 
 import WordCloud from '../components/chart/WordCloud';
 import BarChartRace from '../components/chart/BarChartRace'
+import StackBarchart from '../components/chart/StackBarchart';
 import axios from 'axios';
+import PropTypes from 'prop-types';
 
 // ----------------------------------------------------------------------
 
-export default function DashboardAppPage() {
+export default function DashboardAppPage(props) {
   const theme = useTheme();
-  const wordcloudfakedata = [
-    { id: 1, name: 'Topic 1', words: [
-      { value: 'Lorem', count: 200 }, 
-      { value: 'Ipsum', count: 100 },
-      { value: 'aaaa', count: 120 },
-      { value: 'bbbbb', count: 50 },
-      { value: 'cccc', count: 60 },
-      { value: 'dddd', count: 160 },
-      { value: 'eeeee', count: 90 },
-      { value: 'ffff', count: 110 },
-  ] },
-    { id: 2, name: 'Topic 2', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
-    { id: 3, name: 'Topic 3', words: [{ value: 'Lorem', count: 20 }, { value: 'Ipsum', count: 10 }] },
-    { id: 4, name: 'Topic 4', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
-    { id: 5, name: 'Topic 5', words: [{ value: 'Lorem', count: 20 }, { value: 'Ipsum', count: 10 }] },
-    { id: 6, name: 'Topic 6', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
-    { id: 7, name: 'Topic 7', words: [{ value: 'Lorem', count: 20 }, { value: 'Ipsum', count: 10 }] },
-    { id: 8, name: 'Topic 8', words: [{ value: 'Dolor', count: 15 }, { value: 'Sit', count: 8 }] },
-    // Add more topics with their associated words
-  ];
-  const barRaceData = [
-    {
-      date: "2000-01-01",
-      name: "Joy",
-      value: 72537
-    },
-    {
-      date: "2000-01-01",
-      name: "Sadness",
-      value: 56042
-    },
-    {
-      date: "2000-01-01",
-      name: "Surprise",
-      value: 48000
-    },
-    {
-      date: "2000-01-01",
-      name: "Anger",
-      value: 60000
-    },
-    {
-      date: "2002-03-01",
-      name: "Joy",
-      value: 90003
-    },
-    {
-      date: "2002-03-01",
-      name: "Sadness",
-      value: 65000
-    },
-    {
-      date: "2002-03-01",
-      name: "Surprise",
-      value: 70000
-    },
-    {
-      date: "2002-03-01",
-      name: "Anger",
-      value: 80000
-    },
-    {
-      date: "2004-01-01",
-      name: "Joy",
-      value: 120000
-    },
-    {
-      date: "2004-01-01",
-      name: "Sadness",
-      value: 75000
-    },
-    {
-      date: "2004-01-01",
-      name: "Surprise",
-      value: 85000
-    },
-    {
-      date: "2004-01-01",
-      name: "Anger",
-      value: 90000
-    },
-    {
-      date: "2005-01-01",
-      name: "Joy",
-      value: 130000
-    },
-    {
-      date: "2005-01-01",
-      name: "Sadness",
-      value: 80000
-    },
-    {
-      date: "2005-01-01",
-      name: "Surprise",
-      value: 95000
-    },
-    {
-      date: "2005-01-01",
-      name: "Anger",
-      value: 100000
-    },
-    {
-      date: "2006-01-01",
-      name: "Joy",
-      value: 140000
-    },
-    {
-      date: "2006-01-01",
-      name: "Sadness",
-      value: 85000
-    },
-    {
-      date: "2006-01-01",
-      name: "Surprise",
-      value: 100000
-    },
-    {
-      date: "2006-01-01",
-      name: "Anger",
-      value: 110000
-    },
-    {
-      date: "2006-01-01",
-      name: "Something",
-      value: 110000
-    }
-  ];
 
   const [data, setData] = useState(null);
   // const [pieData, setPieData] = useState([]);
@@ -171,22 +47,6 @@ export default function DashboardAppPage() {
           .catch(error => console.error(error));                              
 
           console.log('hook print: ', data);
-
-          // let result = data.piechart_data[0].goemotion_result.result;
-  
-          // let transformedData2 = [["Task", "Hours per Day"]];
-  
-          // for (let i = 0; i < result.length; i++) {
-          //     let emotion = Object.keys(result[i])[0];
-          //     let value = result[i][emotion];
-          //     transformedData2.push([emotion, value]);
-          // }
-  
-          // console.log(transformedData);
-          // console.log(transformedData2);
-
-          // setSelectedTopic(word_cloud_data);
-          
   
       } catch (error) {
           console.error('Error:', error);
@@ -250,15 +110,40 @@ export default function DashboardAppPage() {
 
   const pieData = handlePieData()
   
+  const stackBarData = data.row2_1.reduce((result, item) => {
+    const existingProduct = result.find(product => product.name === item.name);
+    if (existingProduct) {
+      existingProduct.data.push(item.data);
+    } else {
+      result.push({
+        name: item.name,
+        data: [item.data]
+      });
+    }
+    return result;
+  }, []);
+
+  // let categories = data.row2_1.filter(e => e.name==='Hateful').map(item => {
+    let categories = data.row2_1.map(item => {
+      const date = new Date(item.categories);
+      return `${(date.getUTCMonth() + 1).toString().padStart(2, '0')}/${date.getUTCDate().toString().padStart(2, '0')}/${date.getUTCFullYear()} GMT`;
+    });
+    
+    const groupedCategories = [];
+    for (let i = 0; i < categories.length; i += 3) {
+      groupedCategories.push(categories[i]);
+    }
+    categories = groupedCategories;
+        
   console.log('after hook: ',data);
   // console.log(data.row1_1[0].numOfVideos);
   // console.log(data.row1_2[0].numOfcomments);
   // console.log(data.row1_34[1].numOfComments);
   // console.log(data.row1_34[2].numOfComments);
-  console.log(barRaceData);
   console.log(realBarRaceData);
   // console.log(data.row3_2);
   // console.log(pieData)
+
 
   
   return (
@@ -274,66 +159,29 @@ export default function DashboardAppPage() {
 
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Total Videos" total={data.row1_1[0].numOfVideos} icon={'ant-design:android-filled'} />
+            <AppWidgetSummary title="Total Videos" total={data.row1_1[0].numOfVideos} color="warning"  icon={'mdi:youtube'} />
             {/* <AppWidgetSummary title="Total Videos" total={200000} icon={'ant-design:android-filled'} /> */}
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Total Comments" total={data.row1_2[0].numOfcomments} color="info" icon={'ant-design:apple-filled'} />
+            <AppWidgetSummary title="Total Comments" total={data.row1_2[0].numOfcomments} color="info" icon={'octicon:number-24'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="#Non Hateful" total={data.row1_34[1].numOfComments} color="warning" icon={'ant-design:windows-filled'} />
+            <AppWidgetSummary title="#Non Hateful" total={data.row1_34[1].numOfComments} color="success" icon={'bxs:happy-alt'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="#Hateful" total={data.row1_34[2].numOfComments} color="error" icon={'ant-design:bug-filled'} />
+            <AppWidgetSummary title="#Hateful" total={data.row1_34[2].numOfComments} color="error" icon={'mingcute:angry-fill'} />
           </Grid>
 
           <Grid item xs={12} md={6} lg={8}>
-            <AppWebsiteVisits
-              title="Emotion Barchart"
-              subheader="(+43%) than last year"
-              chartLabels={[
-                '01/01/2003',
-                '02/01/2003',
-                '03/01/2003',
-                '04/01/2003',
-                '05/01/2003',
-                '06/01/2003',
-                '07/01/2003',
-                '08/01/2003',
-                '09/01/2003',
-                '10/01/2003',
-                '11/01/2003',
-              ]}
-              chartData={[
-                {
-                  name: 'Team A',
-                  type: 'column',
-                  fill: 'solid',
-                  data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30],
-                },
-                {
-                  name: 'Team B',
-                  type: 'area',
-                  fill: 'gradient',
-                  data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43],
-                },
-                {
-                  name: 'Team C',
-                  type: 'line',
-                  fill: 'solid',
-                  data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39],
-                },
-              ]}
-            />
+            <StackBarchart inputseries={stackBarData} inputcategories={categories} />
           </Grid>
 
           <Grid item xs={12} md={6} lg={4}>
             <AppCurrentVisits
-              title="Goemotion piechart"
-              
+              title="Goemotion Piechart"
               chartData={pieData}
               chartColors={[
                 theme.palette.primary.main,
