@@ -3,6 +3,7 @@ version: '3'
 services:
   frontend:
       build: ./frontend
+      container_name: frontend
       ports:
         - "3000:3000"
   broker_service:  # The name of your service
