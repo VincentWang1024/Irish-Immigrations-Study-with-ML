@@ -16,7 +16,7 @@ jobs:
         file_name: .env
     - name: Display Environment Variables
       run: |
-        echo "HEROKU_API_KEY: $HEROKU_API_KEY"
+        echo "HEROKU_API_KEY: ${HEROKU_API_KEY}"
     - uses: actions/checkout@v2
     - name: Login to Heroku Container registry
       env: 
