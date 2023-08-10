@@ -18,9 +18,9 @@ jobs:
     - name: Build and push
       env:
         HEROKU_API_KEY: bf110185-687e-4945-8d6d-899d4b5c822f
-      run: heroku container:push -a frontend web 
+      run: heroku container:push -a nlp-client web 
     - name: Release
       env:
         HEROKU_API_KEY: bf110185-687e-4945-8d6d-899d4b5c822f
-      run: heroku container:release -a frontend web 
+      run: heroku container:release -a nlp-client web 
  
