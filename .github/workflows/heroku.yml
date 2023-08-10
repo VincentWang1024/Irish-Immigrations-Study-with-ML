@@ -11,11 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up secret file
+    - name: Set env as secret
       env:
-        DEBUG_SECRET_KEY: ${{ secrets.HEROKU_API_KEY }}
+        MY_VAL: ${{ secrets.HEROKU_API_KEY }}
       run: |
-        echo $DEBUG_SECRET_KEY >> secrets.txt
+        import os
+        for q in (os.getenv("MY_VAL")):
+          print(q)
+      shell: python
     - name: Login to Heroku Container registry
       env: 
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
