@@ -10,25 +10,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+    - name: Make envfile
+      uses: SpicyPizza/create-envfile@v2.0
+      with:
+        file_name: .env
     - uses: actions/checkout@v2
-    - name: Set env as secret
-      env:
-        MY_VAL: ${{ secrets.HEROKU_API_KEY }}
-      run: |
-        import os
-        for q in (os.getenv("MY_VAL")):
-          print(q)
-      shell: python
     - name: Login to Heroku Container registry
       env: 
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        HEROKU_API_KEY: $HEROKU_API_KEY
       run: heroku container:login 
     - name: Build and push
       env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        HEROKU_API_KEY: $HEROKU_API_KEY
       run: heroku container:push -a frontend web 
     - name: Release
       env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        HEROKU_API_KEY: $HEROKU_API_KEY
       run: heroku container:release -a frontend web 
  
