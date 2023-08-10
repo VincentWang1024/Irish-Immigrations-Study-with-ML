@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - run: 'echo "$SSH_KEY" | base64'
+      shell: bash
+      env:
+        SSH_KEY: ${{ secrets.HEROKU_API_KEY }}
     - name: Login to Heroku Container registry
       env: 
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
