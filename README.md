@@ -1,71 +1,17 @@
 # Irish-Immigrations-Study-with-ML
 
+In today’s digital age, platforms such as YouTube are not only reservoirs of entertainment but also crucial barometers
+of public sentiment. Most studies focus on the positive versus negative aspects of sentiment which are useful for high-level
+takeaways but lacks significant depth. This study delves into the intricate issue of immigration in Ireland, utilizing the state-
+of-the-art natural language processing (NLP) models to dissect sentiments gleaned from YouTube video comments in near real-
+time. Our methodology involves the application of multiple NLP models to continuously process, analyze, and categorize
+sentiments from the comments. Also, existing studies view social media as a single location or region. This assumption can prevent us from understanding scenarios such as UK or the US view towards immigration. We curated our dataset by annotating
+comments from Irish specific videos on immigration related issues following the annotation guidelines to train our models. Using our dataset, we found out that XGBoost along with its combination with other ML model is the best performing model with greater recall values. From our analyses, sentiments span a spectrum of emotions ranging from support and empathy to apprehension and dissent. Intriguingly, sentiments often fluctuate in tandem with video content, emphasizing the media’s profound influence on public perception. Such granular insights arm policymakers and analysts with a deepened understanding of the narratives surrounding Irish immigration. The versatility and timeliness of our approach also suggest its vast potential in gauging sentiments on other pressing societal challenges in the ever-evolving digital realm.
 
+## Technological Stack
 
-## Running Backend Services Using Docker in VSCode (Windows User)
+ReactJS, Flask, Kafka, MongoDB, AWS RDS, Pytest, Pytorch, Docker Swarm, AWS EC2
 
-### Requirements:
-1. Install WSL extension in VSCode and then open the project in 
-wsl mode(Short cut : CTRL+SHIFT+P)
-![img.png](img.png)
+## Sequence diagram of Backend Services
 
-
-2. Verify the docker is using wsl and is enabled in settings
-![img_1.png](img_1.png)
-
-### Commands:
-Open the terminal for root folder (Irish-Immigrations-Study-with-ML) in VSCode and type the following commands
-
-1. docker-compose build
-2. docker-compose up
-
-### Sending Requests:
-1. Sample postman Request for Data Service:
-![img_2.png](img_2.png)
-
-Url : http://localhost:8001/comments
-
-Sample Request JSON: {
-    "url": "https://www.youtube.com/watch?v=bsWZF7g2R-Q",
-    "commentcount": 10,
-    "jobid": "4b0ceaf1-704c-465e-bb6a-93e7d1bf8aow",
-    "modelid": 1
-}
-2. Preprocessing Service:
-
-![img_3.png](img_3.png)
-
-Url : http://localhost:8002/api/preprocess
-
-Sample Request JSON: {
-    "jobID": "4b0ceaf1-704c-465e-bb6a-93e7d1bf8aow", "model_id": 1
-}
-
-3. NLP Service:
-
-![img_4.png](img_4.png)
-
-Url: http://localhost:8003/api/callmodel
-
-Sample Request JSON: {
-    "jobID": "4b0ceaf1-704c-465e-bb6a-93e7d1bf8aow", "model_id": 1
-}
-
-## Running Backend Services Without Docker  (Windows User):
-
-### Note: Changes Done in this section are for local testing and should not be merged with main branch.
-
-Stop all the containers if running because they are all mapped to 
-their respective ports in the localhost. Then before running the services locally
-please change the container name to localhost in the URLs used in code 
-to call the other services.
-
-For example the  YTComment.py the hostname in post call to preprocessing_script must be changed. e.g. preprocess_url = 'http://localhost:5002/api/preprocess' .
-Perform these changes in urls used for calls in other services as well.
-
-# CI/CD
-### Configuration 
-To check the existing configuration used for running test cases go through main.yml file in .Github/workflows
-
-### Test Requirements
-Please mention the requirements to execute your testcases in requirements-test.txt file
+![image-20240325153524165](README.assets/image-20240325153524165.png)
