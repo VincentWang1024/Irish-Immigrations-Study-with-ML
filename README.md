@@ -12,3 +12,6 @@ ReactJS, Flask, Kafka, MongoDB, AWS RDS, Pytest, Pytorch, Docker Swarm, AWS EC2
 ## Sequence diagram of Backend Services
 
 ![image-20240325153524165](README.assets/image-20240325153524165.png)
+
+## Dashboard
+![image](https://github.com/user-attachments/assets/d8a3b3f1-a8ef-49b6-a47a-e78caa7c2b63)
